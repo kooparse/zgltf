@@ -1,0 +1,403 @@
+const std = @import("std");
+const ArrayList = std.ArrayList;
+
+/// Index of element in data arrays.
+pub const Index = usize;
+
+/// A node in the node hierarchy. 
+///
+/// When the node contains skin, all mesh.primitives must contain 
+/// JOINTS_0 and WEIGHTS_0 attributes. A node may have either a matrix 
+/// or any combination of translation/rotation/scale (TRS) properties.
+/// TRS properties are converted to matrices and postmultiplied in 
+/// the T * R * S order to compose the transformation matrix. 
+/// If none are provided, the transform is the identity. 
+///
+/// When a node is targeted for animation (referenced by 
+/// an animation.channel.target), matrix must not be present.
+pub const Node = struct {
+    /// The user-defined name of this object.
+    /// Default to `Node_{index}`.
+    name: []const u8,
+    /// The index of the node's parent. 
+    /// A node is called a root node when it doesn’t have a parent.
+    parent: ?Index = null,
+    /// The index of the mesh in this node.
+    mesh: ?Index = null,
+    /// The index of the skin referenced by this node.
+    skin: ?Index = null,
+    /// The indices of this node’s children.
+    children: ArrayList(Index),
+    /// A floating-point 4x4 transformation matrix stored in column-major order.
+    matrix: ?[16]f32 = null,
+    /// The node’s unit quaternion rotation in the order (x, y, z, w), 
+    /// where w is the scalar.
+    rotation: [4]f32 = [_]f32{ 0, 0, 0, 1 },
+    /// The node’s non-uniform scale, given as the scaling factors 
+    /// along the x, y, and z axes.
+    scale: [3]f32 = [_]f32{ 1, 1, 1 },
+    /// The node’s translation along the x, y, and z axes.
+    translation: [3]f32 = [_]f32{ 0, 0, 0 },
+    /// The weights of the instantiated morph target. 
+    /// The number of array elements must match the number of morph targets 
+    /// of the referenced mesh. When defined, mesh mush also be defined.
+    weights: ?[]usize = null,
+};
+
+/// A buffer points to binary geometry, animation, or skins.
+pub const Buffer = struct {
+    /// Relative paths are relative to the current glTF asset.
+    /// It could contains a data:-URI instead of a path.
+    /// Note: data-uri isn't implemented in this library.
+    uri: []const u8,
+    /// The length of the buffer in bytes.
+    byte_length: usize,
+};
+
+/// A view into a buffer generally representing a subset of the buffer.
+pub const BufferView = struct {
+    /// The index of the buffer.
+    buffer: Index,
+    /// The length of the bufferView in bytes.
+    byte_length: usize,
+    /// The offset into the buffer in bytes.
+    byte_offset: usize = 0,
+    /// The stride, in bytes.
+    byte_stride: ?usize = null,
+    /// The hint representing the intended GPU buffer type 
+    /// to use with this buffer view.
+    target: ?Target = null,
+};
+
+/// A typed view into a buffer view that contains raw binary data.
+pub const Accessor = struct {
+    /// The index of the bufferView.
+    buffer_view: ?Index = null,
+    /// The offset relative to the start of the buffer view in bytes.
+    byte_offset: usize = 0,
+    /// The datatype of the accessor’s components.
+    component_type: ComponentType,
+    /// Specifies if the accessor’s elements are scalars, vectors, or matrices.
+    type: AccessorType,
+    /// Computed stride: @sizeOf(component_type) * type.
+    stride: usize,
+    /// The number of elements referenced by this accessor.
+    count: i32,
+    /// Specifies whether integer data values are normalized before usage.
+    normalized: bool = false,
+};
+
+/// The root nodes of a scene.
+pub const Scene = struct {
+    /// The user-defined name of this object.
+    name: []const u8,
+    /// The indices of each root node.
+    nodes: ?ArrayList(Index) = null,
+};
+
+/// Joints and matrices defining a skin.
+pub const Skin = struct {
+    /// The user-defined name of this object.
+    name: []const u8,
+    /// The index of the accessor containing the floating-point 
+    /// 4x4 inverse-bind matrices.
+    inverse_bind_matrices: ?Index = null,
+    /// The index of the node used as a skeleton root.
+    skeleton: ?Index = null,
+    /// Indices of skeleton nodes, used as joints in this skin.
+    joints: ArrayList(Index),
+};
+
+/// Reference to a texture.
+const TextureInfo = struct {
+    /// The index of the texture.
+    index: Index,
+    /// The set index of texture’s TEXCOORD attribute 
+    /// used for texture coordinate mapping.
+    texcoord: i32 = 0,
+};
+
+/// Reference to a normal texture.
+const NormalTextureInfo = struct {
+    /// The index of the texture.
+    index: Index,
+    /// The set index of texture’s TEXCOORD attribute 
+    /// used for texture coordinate mapping.
+    texcoord: i32 = 0,
+    /// The scalar parameter applied to each normal 
+    /// vector of the normal texture.
+    scale: f32 = 1,
+};
+
+/// Reference to an occlusion texture.
+const OcclusionTextureInfo = struct {
+    /// The index of the texture.
+    index: Index,
+    /// The set index of texture’s TEXCOORD attribute 
+    /// used for texture coordinate mapping.
+    texcoord: i32 = 0,
+    /// A scalar multiplier controlling the amount of occlusion applied.
+    strength: f32 = 1,
+};
+
+/// A set of parameter values that are used to define 
+/// the metallic-roughness material model 
+/// from Physically-Based Rendering methodology.
+pub const MetallicRoughness = struct {
+    /// The factors for the base color of the material.
+    base_color_factor: [4]f32 = [_]f32{ 1, 1, 1, 1 },
+    /// The base color texture.
+    base_color_texture: ?TextureInfo = null,
+    /// The factor for the metalness of the material.
+    metallic_factor: f32 = 1,
+    /// The factor for the roughness of the material.
+    roughness_factor: f32 = 1,
+    /// The metallic-roughness texture.
+    metallic_roughness_texture: ?TextureInfo = null,
+};
+
+/// The material appearance of a primitive.
+pub const Material = struct {
+    /// The user-defined name of this object.
+    name: []const u8,
+    /// A set of parameter values that are used to define 
+    /// the metallic-roughness material model 
+    /// from Physically Based Rendering methodology.
+    metallic_roughness: MetallicRoughness = .{},
+    /// The tangent space normal texture.
+    normal_texture: ?NormalTextureInfo = null,
+    /// The occlusion texture.
+    occlusion_texture: ?OcclusionTextureInfo = null,
+    /// The emissive texture.
+    emissive_texture: ?TextureInfo = null,
+    /// The factors for the emissive color of the material.
+    emissive_factor: [3]f32 = [_]f32{ 0, 0, 0 },
+    /// The alpha rendering mode of the material.
+    alpha_mode: AlphaMode = .@"opaque",
+    /// The alpha cutoff value of the material.
+    alpha_cutoff: f32 = 0.5,
+    /// Specifies whether the material is double sided.
+    /// If it's false, back-face culling is enabled.
+    /// If it's true, back-face culling is disabled and 
+    /// double sided lighting is enabled.
+    is_double_sided: bool = false,
+};
+
+/// The material’s alpha rendering mode enumeration specifying 
+/// the interpretation of the alpha value of the base color.
+const AlphaMode = enum {
+    /// The alpha value is ignored, and the rendered output is fully opaque.
+    @"opaque",
+    /// The rendered output is either fully opaque or fully transparent 
+    /// depending on the alpha value and the specified alpha_cutoff value.
+    /// Note: The exact appearance of the edges may be subject to 
+    /// implementation-specific techniques such as “Alpha-to-Coverage”.
+    mask,
+    /// The alpha value is used to composite the source and destination areas. 
+    /// The rendered output is combined with the background using 
+    /// the normal painting operation (i.e. the Porter and Duff over operator).
+    blend,
+};
+
+/// A texture and its sampler.
+pub const Texture = struct {
+    /// The index of the sampler used by this texture. 
+    /// When undefined, a sampler with repeat wrapping and 
+    /// auto filtering should be used.
+    sampler: ?Index = null,
+    /// The index of the image used by this texture. 
+    /// When undefined, an extension or other mechanism should supply 
+    /// an alternate texture source, otherwise behavior is undefined.
+    source: ?Index = null,
+};
+
+/// Image data used to create a texture. 
+/// Image may be referenced by an uri or a buffer view index.
+pub const Image = struct {
+    /// The URI (or IRI) of the image.
+    uri: ?[]const u8 = null,
+    /// The image’s media type. 
+    /// This field must be defined when bufferView is defined.
+    mime_type: ?[]const u8 = null,
+    /// The index of the bufferView that contains the image. 
+    /// Note: This field must not be defined when uri is defined.
+    buffer_view: ?Index = null,
+};
+
+pub const WrapMode = enum(u32) {
+    clamp_to_edge = 33071,
+    mirrored_repeat = 33648,
+    repeat = 10497,
+};
+
+pub const MinFilter = enum(u32) {
+    nearest = 9728,
+    linear = 9729,
+    nearest_mipmap_nearest = 9984,
+    linear_mipmap_nearest = 9985,
+    nearest_mipmap_linear = 9986,
+    linear_mipmap_linear = 9987,
+};
+
+pub const MagFilter = enum(u32) {
+    nearest = 9728,
+    linear = 9729,
+};
+
+/// Texture sampler properties for filtering and wrapping modes.
+pub const TextureSampler = struct {
+    /// Magnification filter.
+    mag_filter: ?MagFilter = null,
+    /// Minification filter.
+    min_filter: ?MinFilter = null,
+    /// S (U) wrapping mode.
+    wrap_s: WrapMode = .repeat,
+    /// T (U) wrapping mode.
+    wrap_t: WrapMode = .repeat,
+};
+
+/// Values are Accessor's index.
+pub const Attribute = union(enum) {
+    position: Index,
+    normal: Index,
+    tangent: Index,
+    texcoord: Index,
+    color: Index,
+    joints: Index,
+    weights: Index,
+};
+
+pub const AccessorType = enum {
+    scalar,
+    vec2,
+    vec3,
+    vec4,
+    mat2x2,
+    mat3x3,
+    mat4x4,
+};
+
+/// Enum values from GLTF 2.0 spec.
+pub const Target = enum(u32) {
+    array_buffer = 34962,
+    element_array_buffer = 34963,
+};
+
+/// Enum values from GLTF 2.0 spec.
+pub const ComponentType = enum(u32) {
+    /// i8.
+    byte = 5120,
+    /// u8.
+    unsigned_byte = 5121,
+    /// i16.
+    short = 5122,
+    /// u16.
+    unsigned_short = 5123,
+    /// u32.
+    unsigned_integer = 5125,
+    /// f32.
+    float = 5126,
+};
+
+/// The topology type of primitives to render.
+pub const Mode = enum(u32) {
+    points = 0,
+    lines = 1,
+    line_loop = 2,
+    line_strip = 3,
+    triangles = 4,
+    triangle_strip = 5,
+    triangle_fan = 6,
+};
+
+/// The name of the node’s TRS property to animate.
+pub const TargetProperty = enum {
+    /// For the "translation" property, the values that are provided by the 
+    /// sampler are the translation along the X, Y, and Z axes. 
+    translation,
+    /// For the "rotation" property, the values are a quaternion 
+    /// in the order (x, y, z, w), where w is the scalar.
+    rotation,
+    /// For the "scale" property, the values are the scaling 
+    /// factors along the X, Y, and Z axes.
+    scale,
+    /// The "weights" of the Morph Targets it instantiates.
+    weights,
+};
+
+/// An animation channel combines an animation sampler 
+/// with a target property being animated.
+pub const Channel = struct {
+    /// The index of a sampler in this animation used to 
+    /// compute the value for the target.
+    sampler: Index,
+    /// The descriptor of the animated property.
+    target: struct {
+        /// The index of the node to animate. 
+        /// When undefined, the animated object may be defined by an extension.
+        node: Index,
+        /// The name of the node’s TRS property to animate, or the "weights" 
+        /// of the Morph Targets it instantiates. 
+        property: TargetProperty,
+    },
+};
+
+/// Interpolation algorithm.
+pub const Interpolation = enum {
+    /// The animated values are linearly interpolated between keyframes.
+    /// When targeting a rotation, spherical linear interpolation (slerp) 
+    /// should be used to interpolate quaternions. 
+    linear,
+    /// The animated values remain constant to the output of the first 
+    /// keyframe, until the next keyframe.
+    step,
+    /// The animation’s interpolation is computed using a cubic 
+    /// spline with specified tangents.
+    cubicspline,
+};
+
+/// An animation sampler combines timestamps 
+/// with a sequence of output values and defines an interpolation algorithm.
+pub const AnimationSampler = struct {
+    /// The index of an accessor containing keyframe timestamps.
+    input: Index,
+    /// The index of an accessor, containing keyframe output values.
+    output: Index,
+    /// Interpolation algorithm.
+    interpolation: Interpolation = .linear,
+};
+
+/// A keyframe animation.
+pub const Animation = struct {
+    /// The user-defined name of this object.
+    name: []const u8,
+    /// An array of animation channels. 
+    /// An animation channel combines an animation sampler with a target
+    /// property being animated.
+    /// Different channels of the same animation must not have the same targets.
+    channels: ArrayList(Channel),
+    /// An array of animation samplers. 
+    /// An animation sampler combines timestamps with a sequence of output
+    /// values and defines an interpolation algorithm.
+    samplers: ArrayList(AnimationSampler),
+};
+
+/// Geometry to be rendered with the given material.
+pub const Primitive = struct {
+    attributes: ArrayList(Attribute),
+    /// The topology type of primitives to render.
+    mode: Mode = .triangles,
+    /// The index of the accessor that contains the vertex indices.
+    indices: ?Index = null,
+    /// The index of the material to apply to this primitive when rendering.
+    material: ?Index = null,
+};
+
+/// A set of primitives to be rendered. 
+/// Its global transform is defined by a node that references it.
+pub const Mesh = struct {
+    /// The user-defined name of this object.
+    name: []const u8,
+    /// An array of primitives, each defining geometry to be rendered.
+    primitives: ArrayList(Primitive),
+};
