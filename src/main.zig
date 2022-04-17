@@ -63,13 +63,15 @@ pub const Data = struct {
 arena: *ArenaAllocator,
 data: Data,
 
-pub fn init(allocator: Allocator, gltf_buffer: []const u8) !Self {
-    var arena = try allocator.create(ArenaAllocator);
+pub fn init(allocator: Allocator) Self {
+    var arena = allocator.create(ArenaAllocator) catch {
+        panic("Error while allocating memory for gltf arena.", .{});
+    };
+
     arena.* = ArenaAllocator.init(allocator);
 
     const alloc = arena.allocator();
-
-    var gltf = Self{
+    return Self{
         .arena = arena,
         .data = .{
             .scenes = ArrayList(Scene).init(alloc),
@@ -86,14 +88,19 @@ pub fn init(allocator: Allocator, gltf_buffer: []const u8) !Self {
             .buffers = ArrayList(Buffer).init(alloc),
         },
     };
+}
+
+/// Fill data by parsing a glTF file's buffer.
+pub fn parse(self: *Self, gltf_buffer: []const u8) !void {
+    const alloc = self.arena.allocator();
 
     var parser = json.Parser.init(alloc, false);
     defer parser.deinit();
 
-    var parsed = try parser.parse(gltf_buffer);
-    defer parsed.deinit();
+    var gltf = try parser.parse(gltf_buffer);
+    defer gltf.deinit();
 
-    if (parsed.root.Object.get("nodes")) |nodes| {
+    if (gltf.root.Object.get("nodes")) |nodes| {
         for (nodes.Array.items) |item, index| {
             const object = item.Object;
 
@@ -153,11 +160,11 @@ pub fn init(allocator: Allocator, gltf_buffer: []const u8) !Self {
                 }
             }
 
-            try gltf.data.nodes.append(node);
+            try self.data.nodes.append(node);
         }
     }
 
-    if (parsed.root.Object.get("skins")) |skins| {
+    if (gltf.root.Object.get("skins")) |skins| {
         for (skins.Array.items) |item, index| {
             const object = item.Object;
 
@@ -186,11 +193,11 @@ pub fn init(allocator: Allocator, gltf_buffer: []const u8) !Self {
                 skin.inverse_bind_matrices = parseIndex(inv_bind_mat4);
             }
 
-            try gltf.data.skins.append(skin);
+            try self.data.skins.append(skin);
         }
     }
 
-    if (parsed.root.Object.get("meshes")) |meshes| {
+    if (gltf.root.Object.get("meshes")) |meshes| {
         for (meshes.Array.items) |item, index| {
             const object = item.Object;
 
@@ -313,11 +320,11 @@ pub fn init(allocator: Allocator, gltf_buffer: []const u8) !Self {
                 }
             }
 
-            try gltf.data.meshes.append(mesh);
+            try self.data.meshes.append(mesh);
         }
     }
 
-    if (parsed.root.Object.get("accessors")) |accessors| {
+    if (gltf.root.Object.get("accessors")) |accessors| {
         for (accessors.Array.items) |item| {
             const object = item.Object;
 
@@ -393,11 +400,11 @@ pub fn init(allocator: Allocator, gltf_buffer: []const u8) !Self {
                 .mat4x4 => 16 * component_size,
             };
 
-            try gltf.data.accessors.append(accessor);
+            try self.data.accessors.append(accessor);
         }
     }
 
-    if (parsed.root.Object.get("bufferViews")) |buffer_views| {
+    if (gltf.root.Object.get("bufferViews")) |buffer_views| {
         for (buffer_views.Array.items) |item| {
             const object = item.Object;
 
@@ -426,11 +433,11 @@ pub fn init(allocator: Allocator, gltf_buffer: []const u8) !Self {
                 buffer_view.target = @intToEnum(Target, target.Integer);
             }
 
-            try gltf.data.buffer_views.append(buffer_view);
+            try self.data.buffer_views.append(buffer_view);
         }
     }
 
-    if (parsed.root.Object.get("buffers")) |buffers| {
+    if (gltf.root.Object.get("buffers")) |buffers| {
         for (buffers.Array.items) |item| {
             const object = item.Object;
 
@@ -453,7 +460,7 @@ pub fn init(allocator: Allocator, gltf_buffer: []const u8) !Self {
         }
     }
 
-    if (parsed.root.Object.get("scenes")) |scenes| {
+    if (gltf.root.Object.get("scenes")) |scenes| {
         for (scenes.Array.items) |item, index| {
             const object = item.Object;
 
@@ -475,11 +482,11 @@ pub fn init(allocator: Allocator, gltf_buffer: []const u8) !Self {
                 }
             }
 
-            try gltf.data.scenes.append(scene);
+            try self.data.scenes.append(scene);
         }
     }
 
-    if (parsed.root.Object.get("materials")) |materials| {
+    if (gltf.root.Object.get("materials")) |materials| {
         for (materials.Array.items) |item, m_index| {
             const object = item.Object;
 
@@ -616,11 +623,11 @@ pub fn init(allocator: Allocator, gltf_buffer: []const u8) !Self {
                 }
             }
 
-            try gltf.data.materials.append(material);
+            try self.data.materials.append(material);
         }
     }
 
-    if (parsed.root.Object.get("textures")) |textures| {
+    if (gltf.root.Object.get("textures")) |textures| {
         for (textures.Array.items) |item| {
             var texture = Texture{};
 
@@ -632,11 +639,11 @@ pub fn init(allocator: Allocator, gltf_buffer: []const u8) !Self {
                 texture.sampler = parseIndex(sampler);
             }
 
-            try gltf.data.textures.append(texture);
+            try self.data.textures.append(texture);
         }
     }
 
-    if (parsed.root.Object.get("animations")) |animations| {
+    if (gltf.root.Object.get("animations")) |animations| {
         for (animations.Array.items) |item, index| {
             const object = item.Object;
 
@@ -732,11 +739,11 @@ pub fn init(allocator: Allocator, gltf_buffer: []const u8) !Self {
                 }
             }
 
-            try gltf.data.animations.append(animation);
+            try self.data.animations.append(animation);
         }
     }
 
-    if (parsed.root.Object.get("samplers")) |samplers| {
+    if (gltf.root.Object.get("samplers")) |samplers| {
         for (samplers.Array.items) |item| {
             const object = item.Object;
             var sampler = TextureSampler{};
@@ -757,11 +764,11 @@ pub fn init(allocator: Allocator, gltf_buffer: []const u8) !Self {
                 sampler.wrap_t = @intToEnum(WrapMode, wrap_t.Integer);
             }
 
-            try gltf.data.samplers.append(sampler);
+            try self.data.samplers.append(sampler);
         }
     }
 
-    if (parsed.root.Object.get("images")) |images| {
+    if (gltf.root.Object.get("images")) |images| {
         for (images.Array.items) |item| {
             const object = item.Object;
             var image = Image{};
@@ -778,21 +785,19 @@ pub fn init(allocator: Allocator, gltf_buffer: []const u8) !Self {
                 image.buffer_view = parseIndex(buffer_view);
             }
 
-            try gltf.data.images.append(image);
+            try self.data.images.append(image);
         }
     }
 
     // For each node, fill parent indexes.
-    for (gltf.data.scenes.items) |scene| {
+    for (self.data.scenes.items) |scene| {
         if (scene.nodes) |nodes| {
             for (nodes.items) |node_index| {
-                var node = &gltf.data.nodes.items[node_index];
-                fillParents(&gltf.data, node, node_index);
+                var node = &self.data.nodes.items[node_index];
+                fillParents(&self.data, node, node_index);
             }
         }
     }
-
-    return gltf;
 }
 
 pub fn deinit(self: *Self) void {
@@ -875,7 +880,7 @@ fn fillParents(data: *Data, node: *Node, parent_index: Index) void {
     }
 }
 
-test "gltf.init" {
+test "gltf.parse" {
     const allocator = std.testing.allocator;
     const expectEqualSlices = std.testing.expectEqualSlices;
     const expectEqual = std.testing.expectEqual;
@@ -889,8 +894,10 @@ test "gltf.init" {
     );
     defer allocator.free(buf);
 
-    var gltf = try Self.init(allocator, buf);
+    var gltf = Self.init(allocator);
     defer gltf.deinit();
+
+    try gltf.parse(buf);
 
     const nodes = gltf.data.nodes.items;
     const skin = gltf.data.skins.items[0];

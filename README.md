@@ -3,7 +3,7 @@
 This project is a glTF 2.0 parser written in Zig, aiming to replace the use of some C/C++ libraries. 
 
 It's not as complete as the glTF specification yet, but because it's straightforward to add
-new parsing fields, the idea is to get new stuff incrementally and on-demand.
+new parsed fields, the idea is to get new stuff incrementally and on-demand.
 
 All glTF types are fully documented, so it comes nicely with IDE autocompletion, reducing 
 back and forth with the [specification](https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html).
@@ -27,8 +27,10 @@ pub fn main() void {
     );
     defer allocator.free(buf);
 
-    var gltf = try Self.init(allocator, buf);
+    var gltf = Self.init(allocator);
     defer gltf.deinit();
+
+    try gltf.parse(buf);
 
     for (gltf.nodes.items) |node| {
         const message =
