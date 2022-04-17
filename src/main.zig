@@ -800,6 +800,74 @@ pub fn parse(self: *Self, gltf_buffer: []const u8) !void {
     }
 }
 
+/// Retrieve actual data from a glTF BufferView through a given glTF Accessor.
+/// Note: This library won't pull to memory the binary buffer corresponding 
+/// to the BufferView.
+pub fn getDataFromBufferView(
+    self: *const Self,
+    comptime T: type,
+    /// List that will be fill with data.
+    list: *ArrayList(T),
+    accessor: Accessor,
+    binary: []const u8,
+) void {
+    if (switch (accessor.component_type) {
+        .byte => T != i8,
+        .unsigned_byte => T != u8,
+        .short => T != i16,
+        .unsigned_short => T != u16,
+        .unsigned_integer => T != u32,
+        .float => T != f32,
+    }) {
+        panic(
+            "Mismatch between gltf component '{}' and given type '{}'.",
+            .{ accessor.component_type, T },
+        );
+    }
+
+    if (accessor.buffer_view == null) {
+        panic("Accessors without buffer_view are not supported yet.", .{});
+    }
+
+    const buffer_view = self.data.buffer_views.items[accessor.buffer_view.?];
+
+    const comp_size = @sizeOf(T);
+    const offset = (accessor.byte_offset + buffer_view.byte_offset) / comp_size;
+
+    const stride = blk: {
+        if (buffer_view.byte_stride) |byte_stride| {
+            break :blk byte_stride / comp_size;
+        } else {
+            break :blk accessor.stride / comp_size;
+        }
+    };
+
+    const total_count = accessor.count;
+    const datum_count: usize = switch (accessor.type) {
+        // Scalar.
+        .scalar => 1,
+        // Vec2.
+        .vec2 => 2,
+        // Vec3.
+        .vec3 => 3,
+        // Vec4.
+        .vec4 => 4,
+        // Vec4.
+        .mat4x4 => 16,
+        else => {
+            panic("Accessor type '{}' not implemented.", .{accessor.type});
+        },
+    };
+
+    const data = @ptrCast([*]const T, @alignCast(@alignOf(T), binary.ptr));
+
+    var current_count: usize = 0;
+    while (current_count < total_count) : (current_count += 1) {
+        const slice = (data + offset + current_count * stride)[0..datum_count];
+        list.appendSlice(slice) catch unreachable;
+    }
+}
+
 pub fn deinit(self: *Self) void {
     self.arena.deinit();
     self.arena.child_allocator.destroy(self.arena);
@@ -899,15 +967,73 @@ test "gltf.parse" {
 
     try gltf.parse(buf);
 
-    const nodes = gltf.data.nodes.items;
-    const skin = gltf.data.skins.items[0];
-
     // Nodes.
+    const nodes = gltf.data.nodes.items;
     try expectEqualSlices(u8, nodes[0].name, "Z_UP");
     try expectEqualSlices(usize, nodes[0].children.items, &[_]usize{1});
     try expectEqualSlices(u8, nodes[2].name, "Cylinder");
     try expectEqual(nodes[2].skin, 0);
 
     // Skin
+    const skin = gltf.data.skins.items[0];
     try expectEqualSlices(u8, skin.name, "Armature");
+}
+
+test "gltf.getDataFromBufferView" {
+    const allocator = std.testing.allocator;
+    const expectEqualSlices = std.testing.expectEqualSlices;
+
+    // This is the '.gltf' file, a json specifying what information is in the
+    // model and how to retrieve it inside binary file(s).
+    const buf = try std.fs.cwd().readFileAlloc(
+        allocator,
+        "test-samples/box/Box.gltf",
+        512_000,
+    );
+    defer allocator.free(buf);
+
+    // This is the '.bin' file containing all the gltf underneath data.
+    const binary = try std.fs.cwd().readFileAllocOptions(
+        allocator,
+        "test-samples/box/Box0.bin",
+        5_000_000,
+        null,
+        // From gltf spec, data from BufferView should be 4 bytes aligned.
+        4,
+        null,
+    );
+    defer allocator.free(binary);
+
+    var gltf = Self.init(allocator);
+    defer gltf.deinit();
+
+    try gltf.parse(buf);
+
+    const mesh = gltf.data.meshes.items[0];
+    for (mesh.primitives.items) |primitive| {
+        for (primitive.attributes.items) |attribute| {
+            switch (attribute) {
+                .position => |accessor_index| {
+                    var tmp = ArrayList(f32).init(allocator);
+                    defer tmp.deinit();
+
+                    const accessor = gltf.data.accessors.items[accessor_index];
+                    gltf.getDataFromBufferView(f32, &tmp, accessor, binary);
+
+                    try expectEqualSlices(f32, tmp.items, &[72]f32{
+                        // zig fmt: off
+                        -0.50, -0.50, 0.50, 0.50, -0.50, 0.50, -0.50, 0.50, 0.50,
+                        0.50, 0.50, 0.50, 0.50, -0.50, 0.50, -0.50, -0.50, 0.50, 
+                        0.50, -0.50, -0.50, -0.50, -0.50, -0.50, 0.50, 0.50, 0.50, 
+                        0.50, -0.50, 0.50, 0.50, 0.50, -0.50, 0.50, -0.50, -0.50, 
+                        -0.50, 0.50, 0.50, 0.50, 0.50, 0.50, -0.50, 0.50, -0.50, 
+                        0.50, 0.50, -0.50, -0.50, -0.50, 0.50, -0.50, 0.50, 0.50, 
+                        -0.50, -0.50, -0.50, -0.50, 0.50, -0.50, -0.50, -0.50, -0.50, 
+                        -0.50, 0.50, -0.50, 0.50, -0.50, -0.50, 0.50, 0.50, -0.50,
+                    });
+                },
+                else => {},
+            }
+        }
+    }
 }

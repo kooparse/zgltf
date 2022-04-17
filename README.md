@@ -1,11 +1,11 @@
 # glTF parser for Zig codebase
 
-This project is a glTF 2.0 parser written in Zig, aiming to replace the use of some C/C++ libraries. 
+This project is a glTF 2.0 parser written in Zig, aiming to replace the use of some C/C++ libraries.
 
 It's not as complete as the glTF specification yet, but because it's straightforward to add
 new parsed fields, the idea is to get new stuff incrementally and on-demand.
 
-All glTF types are fully documented, so it comes nicely with IDE autocompletion, reducing 
+All glTF types are fully documented, so it comes nicely with IDE autocompletion, reducing
 back and forth with the [specification](https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html).
 
 If you would like to contribute, don't hesitate! :)
@@ -46,6 +46,38 @@ pub fn main() void {
         });
     }
 }
+```
+
+Also you could easily load data from an `Accessor` with `getDataFromBufferView`:
+
+```zig
+// const gltf = Gltf.init(allocator);
+// try gltf.parse(my_gltf_buf);
+
+const bin = try std.fs.cwd().readFileAlloc(
+    allocator,
+    "test-samples/rigged_simple/RiggedSimple0.bin",
+    5_000_000,
+);
+defer allocator.free(buf);
+
+var vertices = ArrayList(f32).init(allocator);
+defer vertices.deinit();
+
+const mesh = gltf.data.meshes.items[0];
+for (mesh.primitives.items) |primitive| {
+    for (primitive.attributes.items) |attribute| {
+        switch (attribute) {
+            // Accessor for mesh vertices:
+            .position => |accessor_index| {
+                const accessor = gltf.data.accessors.items[accessor_index];
+                gltf.getDataFromBufferView(f32, &vertices, accessor, bin);
+            },
+            else => {}
+        }
+    }
+}
+
 ```
 
 ## Features
