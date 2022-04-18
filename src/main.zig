@@ -10,6 +10,7 @@ const types = @import("./types.zig");
 
 const mem = std.mem;
 const json = std.json;
+const fmt = std.fmt;
 const panic = std.debug.panic;
 const print = std.debug.print;
 const ArrayList = std.ArrayList;
@@ -27,6 +28,7 @@ pub const Material = types.Material;
 pub const Skin = types.Skin;
 pub const TextureSampler = types.TextureSampler;
 pub const Image = types.Image;
+pub const Camera = types.Camera;
 pub const Animation = types.Animation;
 pub const Texture = types.Texture;
 pub const Accessor = types.Accessor;
@@ -50,6 +52,7 @@ pub const Data = struct {
     asset: Asset,
     scene: ?Index = null,
     scenes: ArrayList(Scene),
+    cameras: ArrayList(Camera),
     nodes: ArrayList(Node),
     meshes: ArrayList(Mesh),
     materials: ArrayList(Material),
@@ -80,6 +83,7 @@ pub fn init(allocator: Allocator) Self {
             .asset = Asset{ .version = "Undefined" },
             .scenes = ArrayList(Scene).init(alloc),
             .nodes = ArrayList(Node).init(alloc),
+            .cameras = ArrayList(Camera).init(alloc),
             .meshes = ArrayList(Mesh).init(alloc),
             .materials = ArrayList(Material).init(alloc),
             .skins = ArrayList(Skin).init(alloc),
@@ -134,11 +138,15 @@ pub fn parse(self: *Self, gltf_buffer: []const u8) !void {
             if (object.get("name")) |name| {
                 node.name = try alloc.dupe(u8, name.String);
             } else {
-                node.name = try std.fmt.allocPrint(alloc, "Node_{}", .{index});
+                node.name = try fmt.allocPrint(alloc, "Node_{}", .{index});
             }
 
             if (object.get("mesh")) |mesh| {
                 node.mesh = parseIndex(mesh);
+            }
+
+            if (object.get("camera")) |camera_index| {
+                node.camera = parseIndex(camera_index);
             }
 
             if (object.get("skin")) |skin| {
@@ -186,6 +194,67 @@ pub fn parse(self: *Self, gltf_buffer: []const u8) !void {
         }
     }
 
+    if (gltf.root.Object.get("cameras")) |cameras| {
+        for (cameras.Array.items) |item, index| {
+            const object = item.Object;
+
+            var camera = Camera{
+                .name = undefined,
+                .type = undefined,
+            };
+
+            if (object.get("name")) |name| {
+                camera.name = try alloc.dupe(u8, name.String);
+            } else {
+                camera.name = try fmt.allocPrint(alloc, "Camera_{}", .{index});
+            }
+
+            if (object.get("type")) |name| {
+                if (mem.eql(u8, name.String, "perspective")) {
+                    if (object.get("perspective")) |perspective| {
+                        var value = perspective.Object;
+
+                        camera.type = .{
+                            .perspective = .{
+                                .aspect_ratio = parseFloat(
+                                    f32,
+                                    value.get("aspectRatio").?,
+                                ),
+                                .yfov = parseFloat(f32, value.get("yfov").?),
+                                .zfar = parseFloat(f32, value.get("zfar").?),
+                                .znear = parseFloat(f32, value.get("znear").?),
+                            },
+                        };
+                    } else {
+                        panic("Camera's perspective value is missing.", .{});
+                    }
+                } else if (mem.eql(u8, name.String, "orthographic")) {
+                    if (object.get("orthographic")) |orthographic| {
+                        var value = orthographic.Object;
+
+                        camera.type = .{
+                            .orthographic = .{
+                                .xmag = parseFloat(f32, value.get("xmag").?),
+                                .ymag = parseFloat(f32, value.get("ymag").?),
+                                .zfar = parseFloat(f32, value.get("zfar").?),
+                                .znear = parseFloat(f32, value.get("znear").?),
+                            },
+                        };
+                    } else {
+                        panic("Camera's orthographic value is missing.", .{});
+                    }
+                } else {
+                    panic(
+                        "Camera's type must be perspective or orthographic.",
+                        .{},
+                    );
+                }
+            }
+
+            try self.data.cameras.append(camera);
+        }
+    }
+
     if (gltf.root.Object.get("skins")) |skins| {
         for (skins.Array.items) |item, index| {
             const object = item.Object;
@@ -198,7 +267,7 @@ pub fn parse(self: *Self, gltf_buffer: []const u8) !void {
             if (object.get("name")) |name| {
                 skin.name = try alloc.dupe(u8, name.String);
             } else {
-                skin.name = try std.fmt.allocPrint(alloc, "Skin_{}", .{index});
+                skin.name = try fmt.allocPrint(alloc, "Skin_{}", .{index});
             }
 
             if (object.get("joints")) |joints| {
@@ -231,7 +300,7 @@ pub fn parse(self: *Self, gltf_buffer: []const u8) !void {
             if (object.get("name")) |name| {
                 mesh.name = try alloc.dupe(u8, name.String);
             } else {
-                mesh.name = try std.fmt.allocPrint(alloc, "Mesh_{}", .{index});
+                mesh.name = try fmt.allocPrint(alloc, "Mesh_{}", .{index});
             }
 
             if (object.get("primitives")) |primitives| {
@@ -497,7 +566,7 @@ pub fn parse(self: *Self, gltf_buffer: []const u8) !void {
             if (object.get("name")) |name| {
                 scene.name = try alloc.dupe(u8, name.String);
             } else {
-                scene.name = try std.fmt.allocPrint(alloc, "Scene_{}", .{index});
+                scene.name = try fmt.allocPrint(alloc, "Scene_{}", .{index});
             }
 
             if (object.get("nodes")) |nodes| {
@@ -523,7 +592,7 @@ pub fn parse(self: *Self, gltf_buffer: []const u8) !void {
             if (object.get("name")) |name| {
                 material.name = try alloc.dupe(u8, name.String);
             } else {
-                material.name = try std.fmt.allocPrint(alloc, "Material_{}", .{m_index});
+                material.name = try fmt.allocPrint(alloc, "Material_{}", .{m_index});
             }
 
             if (object.get("pbrMetallicRoughness")) |pbrMetallicRoughness| {
@@ -682,7 +751,7 @@ pub fn parse(self: *Self, gltf_buffer: []const u8) !void {
             if (item.Object.get("name")) |name| {
                 animation.name = try alloc.dupe(u8, name.String);
             } else {
-                animation.name = try std.fmt.allocPrint(alloc, "Animation_{}", .{index});
+                animation.name = try fmt.allocPrint(alloc, "Animation_{}", .{index});
             }
 
             if (object.get("samplers")) |samplers| {
@@ -1012,12 +1081,46 @@ test "gltf.parse" {
     try expectEqualSlices(u8, skin.name, "Armature");
 }
 
+test "gltf.parse (cameras)" {
+    const allocator = std.testing.allocator;
+    const expectEqual = std.testing.expectEqual;
+
+    const buf = try std.fs.cwd().readFileAlloc(
+        allocator,
+        "test-samples/cameras/Cameras.gltf",
+        512_000,
+    );
+    defer allocator.free(buf);
+
+    var gltf = Self.init(allocator);
+    defer gltf.deinit();
+
+    try gltf.parse(buf);
+
+    try expectEqual(gltf.data.nodes.items[1].camera, 0);
+    try expectEqual(gltf.data.nodes.items[2].camera, 1);
+
+    const camera_0 = gltf.data.cameras.items[0];
+    try expectEqual(camera_0.type.perspective, Camera.Perspective{
+        .aspect_ratio = 1.0,
+        .yfov = 0.7,
+        .zfar = 100,
+        .znear = 0.01,
+    });
+
+    const camera_1 = gltf.data.cameras.items[1];
+    try expectEqual(camera_1.type.orthographic, Camera.Orthographic{
+        .xmag = 1.0,
+        .ymag = 1.0,
+        .zfar = 100,
+        .znear = 0.01,
+    });
+}
+
 test "gltf.getDataFromBufferView" {
     const allocator = std.testing.allocator;
     const expectEqualSlices = std.testing.expectEqualSlices;
 
-    // This is the '.gltf' file, a json specifying what information is in the
-    // model and how to retrieve it inside binary file(s).
     const buf = try std.fs.cwd().readFileAlloc(
         allocator,
         "test-samples/box/Box.gltf",

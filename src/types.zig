@@ -24,6 +24,8 @@ pub const Node = struct {
     parent: ?Index = null,
     /// The index of the mesh in this node.
     mesh: ?Index = null,
+    /// The index of the camera referenced by this node.
+    camera: ?Index = null,
     /// The index of the skin referenced by this node.
     skin: ?Index = null,
     /// The indices of this node’s children.
@@ -410,4 +412,48 @@ pub const Asset = struct {
     generator: ?[]const u8 = null,
     /// A copyright message suitable for display to credit the content creator.
     copyright: ?[]const u8 = null,
+};
+
+/// A camera’s projection. 
+/// A node may reference a camera to apply a transform to place the camera 
+/// in the scene.
+pub const Camera = struct {
+    /// A perspective camera containing properties to create a 
+    /// perspective projection matrix.
+    pub const Perspective = struct {
+        /// The aspect ratio of the field of view.
+        aspect_ratio: f32,
+        /// The vertical field of view in radians. 
+        /// This value should be less than π.
+        yfov: f32,
+        /// The distance to the far clipping plane.
+        zfar: f32,
+        /// The distance to the near clipping plane.
+        znear: f32,
+    };
+
+    /// An orthographic camera containing properties to create an 
+    /// orthographic projection matrix.
+    pub const Orthographic = struct {
+        /// The horizontal magnification of the view. 
+        /// This value must not be equal to zero. 
+        /// This value should not be negative.
+        xmag: f32,
+        /// The vertical magnification of the view. 
+        /// This value must not be equal to zero. 
+        /// This value should not be negative.
+        ymag: f32,
+        /// The distance to the far clipping plane. 
+        /// This value must not be equal to zero. 
+        /// This value must be greater than znear.
+        zfar: f32,
+        /// The distance to the near clipping plane.
+        znear: f32,
+    };
+
+    name: []const u8,
+    type: union {
+        perspective: Perspective,
+        orthographic: Orthographic,
+    },
 };
