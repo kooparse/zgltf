@@ -51,8 +51,8 @@ pub fn main() void {
 Also you could easily load data from an `Accessor` with `getDataFromBufferView`:
 
 ```zig
-// const gltf = Gltf.init(allocator);
-// try gltf.parse(my_gltf_buf);
+const gltf = Gltf.init(allocator);
+try gltf.parse(my_gltf_buf);
 
 const bin = try std.fs.cwd().readFileAlloc(
     allocator,

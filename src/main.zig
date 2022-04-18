@@ -44,8 +44,10 @@ pub const MagFilter = types.MagFilter;
 pub const MinFilter = types.MinFilter;
 pub const WrapMode = types.WrapMode;
 pub const TargetProperty = types.TargetProperty;
+pub const Asset = types.Asset;
 
 pub const Data = struct {
+    asset: Asset,
     scenes: ArrayList(Scene),
     nodes: ArrayList(Node),
     meshes: ArrayList(Mesh),
@@ -74,6 +76,7 @@ pub fn init(allocator: Allocator) Self {
     return Self{
         .arena = arena,
         .data = .{
+            .asset = Asset{ .version = "Undefined" },
             .scenes = ArrayList(Scene).init(alloc),
             .nodes = ArrayList(Node).init(alloc),
             .meshes = ArrayList(Mesh).init(alloc),
@@ -99,6 +102,24 @@ pub fn parse(self: *Self, gltf_buffer: []const u8) !void {
 
     var gltf = try parser.parse(gltf_buffer);
     defer gltf.deinit();
+
+    if (gltf.root.Object.get("asset")) |json_value| {
+        var asset = &self.data.asset;
+
+        if (json_value.Object.get("version")) |version| {
+            asset.version = try alloc.dupe(u8, version.String);
+        } else {
+            panic("Asset's version is missing.", .{});
+        }
+
+        if (json_value.Object.get("generator")) |generator| {
+            asset.generator = try alloc.dupe(u8, generator.String);
+        }
+
+        if (json_value.Object.get("copyright")) |copyright| {
+            asset.copyright = try alloc.dupe(u8, copyright.String);
+        }
+    }
 
     if (gltf.root.Object.get("nodes")) |nodes| {
         for (nodes.Array.items) |item, index| {
@@ -965,7 +986,12 @@ test "gltf.parse" {
     var gltf = Self.init(allocator);
     defer gltf.deinit();
 
+    try expectEqualSlices(u8, gltf.data.asset.version, "Undefined");
+
     try gltf.parse(buf);
+
+    try expectEqualSlices(u8, gltf.data.asset.version, "2.0");
+    try expectEqualSlices(u8, gltf.data.asset.generator.?, "COLLADA2GLTF");
 
     // Nodes.
     const nodes = gltf.data.nodes.items;

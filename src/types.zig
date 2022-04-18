@@ -401,3 +401,13 @@ pub const Mesh = struct {
     /// An array of primitives, each defining geometry to be rendered.
     primitives: ArrayList(Primitive),
 };
+
+/// Metadata about the glTF asset.
+pub const Asset = struct {
+    /// The glTF version that this asset targets.
+    version: []const u8,
+    /// Tool that generated this glTF model. Useful for debugging.
+    generator: ?[]const u8 = null,
+    /// A copyright message suitable for display to credit the content creator.
+    copyright: ?[]const u8 = null,
+};
