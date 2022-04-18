@@ -48,6 +48,7 @@ pub const Asset = types.Asset;
 
 pub const Data = struct {
     asset: Asset,
+    scene: ?Index = null,
     scenes: ArrayList(Scene),
     nodes: ArrayList(Node),
     meshes: ArrayList(Mesh),
@@ -479,6 +480,10 @@ pub fn parse(self: *Self, gltf_buffer: []const u8) !void {
                 panic("Buffer's byteLength is missing.", .{});
             }
         }
+    }
+
+    if (gltf.root.Object.get("scene")) |default_scene| {
+        self.data.scene = parseIndex(default_scene);
     }
 
     if (gltf.root.Object.get("scenes")) |scenes| {
@@ -992,6 +997,8 @@ test "gltf.parse" {
 
     try expectEqualSlices(u8, gltf.data.asset.version, "2.0");
     try expectEqualSlices(u8, gltf.data.asset.generator.?, "COLLADA2GLTF");
+
+    try expectEqual(gltf.data.scene, 0);
 
     // Nodes.
     const nodes = gltf.data.nodes.items;

@@ -85,11 +85,12 @@ for (mesh.primitives.items) |primitive| {
 - [x] glTF 2.0 json file
 - [x] Scenes
 - [x] Nodes
+- [x] Buffers/BufferViews
 - [x] Meshes
+- [x] Images
 - [x] Materials
 - [x] Animations
 - [x] Skins
-- [ ] Lights
 - [ ] Cameras
 - [ ] Morth targets
 - [ ] Extras data
