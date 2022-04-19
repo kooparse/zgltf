@@ -1,12 +1,11 @@
 # glTF parser for Zig codebase
 
-This project is a glTF 2.0 parser written in Zig, aiming to replace the use of some C/C++ libraries.
-
-It's not as complete as the glTF specification yet, but because it's straightforward to add
-new parsed fields, the idea is to get new stuff incrementally and on-demand.
-
-All glTF types are fully documented, so it comes nicely with IDE autocompletion, reducing
+This project is a glTF 2.0 parser written in Zig, aiming to replace the use of some C/C++ libraries. All glTF types are fully documented, so it comes nicely with IDE autocompletion, reducing
 back and forth with the [specification](https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html).
+
+This library intends to mimic the glTF file structure in memory. Thereby it's designed around arrays and indexes instead of pointers as you may see in `cgltf` or other libraries. Also, it's the **user's responsibility** to load glTF files and their related binaries in memory.
+
+Note: It's not as complete as the glTF specification yet, but because it's straightforward to add new parsed fields, we'll get new stuff incrementally and on-demand.
 
 If you would like to contribute, don't hesitate! :)
 
