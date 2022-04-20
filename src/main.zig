@@ -548,6 +548,8 @@ pub fn parse(self: *Self, gltf_buffer: []const u8) !void {
             } else {
                 panic("Buffer's byteLength is missing.", .{});
             }
+
+            try self.data.buffers.append(buffer);
         }
     }
 
@@ -1075,6 +1077,8 @@ test "gltf.parse" {
     try expectEqualSlices(usize, nodes[0].children.items, &[_]usize{1});
     try expectEqualSlices(u8, nodes[2].name, "Cylinder");
     try expectEqual(nodes[2].skin, 0);
+
+    try expectEqual(gltf.data.buffers.items.len > 0, true);
 
     // Skin
     const skin = gltf.data.skins.items[0];
