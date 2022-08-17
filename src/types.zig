@@ -4,22 +4,22 @@ const ArrayList = std.ArrayList;
 /// Index of element in data arrays.
 pub const Index = usize;
 
-/// A node in the node hierarchy. 
+/// A node in the node hierarchy.
 ///
-/// When the node contains skin, all mesh.primitives must contain 
-/// JOINTS_0 and WEIGHTS_0 attributes. A node may have either a matrix 
+/// When the node contains skin, all mesh.primitives must contain
+/// JOINTS_0 and WEIGHTS_0 attributes. A node may have either a matrix
 /// or any combination of translation/rotation/scale (TRS) properties.
-/// TRS properties are converted to matrices and postmultiplied in 
-/// the T * R * S order to compose the transformation matrix. 
-/// If none are provided, the transform is the identity. 
+/// TRS properties are converted to matrices and postmultiplied in
+/// the T * R * S order to compose the transformation matrix.
+/// If none are provided, the transform is the identity.
 ///
-/// When a node is targeted for animation (referenced by 
+/// When a node is targeted for animation (referenced by
 /// an animation.channel.target), matrix must not be present.
 pub const Node = struct {
     /// The user-defined name of this object.
     /// Default to `Node_{index}`.
     name: []const u8,
-    /// The index of the node's parent. 
+    /// The index of the node's parent.
     /// A node is called a root node when it doesn’t have a parent.
     parent: ?Index = null,
     /// The index of the mesh in this node.
@@ -32,16 +32,16 @@ pub const Node = struct {
     children: ArrayList(Index),
     /// A floating-point 4x4 transformation matrix stored in column-major order.
     matrix: ?[16]f32 = null,
-    /// The node’s unit quaternion rotation in the order (x, y, z, w), 
+    /// The node’s unit quaternion rotation in the order (x, y, z, w),
     /// where w is the scalar.
     rotation: [4]f32 = [_]f32{ 0, 0, 0, 1 },
-    /// The node’s non-uniform scale, given as the scaling factors 
+    /// The node’s non-uniform scale, given as the scaling factors
     /// along the x, y, and z axes.
     scale: [3]f32 = [_]f32{ 1, 1, 1 },
     /// The node’s translation along the x, y, and z axes.
     translation: [3]f32 = [_]f32{ 0, 0, 0 },
-    /// The weights of the instantiated morph target. 
-    /// The number of array elements must match the number of morph targets 
+    /// The weights of the instantiated morph target.
+    /// The number of array elements must match the number of morph targets
     /// of the referenced mesh. When defined, mesh mush also be defined.
     weights: ?[]usize = null,
 };
@@ -66,7 +66,7 @@ pub const BufferView = struct {
     byte_offset: usize = 0,
     /// The stride, in bytes.
     byte_stride: ?usize = null,
-    /// The hint representing the intended GPU buffer type 
+    /// The hint representing the intended GPU buffer type
     /// to use with this buffer view.
     target: ?Target = null,
 };
@@ -101,7 +101,7 @@ pub const Scene = struct {
 pub const Skin = struct {
     /// The user-defined name of this object.
     name: []const u8,
-    /// The index of the accessor containing the floating-point 
+    /// The index of the accessor containing the floating-point
     /// 4x4 inverse-bind matrices.
     inverse_bind_matrices: ?Index = null,
     /// The index of the node used as a skeleton root.
@@ -114,7 +114,7 @@ pub const Skin = struct {
 const TextureInfo = struct {
     /// The index of the texture.
     index: Index,
-    /// The set index of texture’s TEXCOORD attribute 
+    /// The set index of texture’s TEXCOORD attribute
     /// used for texture coordinate mapping.
     texcoord: i32 = 0,
 };
@@ -123,10 +123,10 @@ const TextureInfo = struct {
 const NormalTextureInfo = struct {
     /// The index of the texture.
     index: Index,
-    /// The set index of texture’s TEXCOORD attribute 
+    /// The set index of texture’s TEXCOORD attribute
     /// used for texture coordinate mapping.
     texcoord: i32 = 0,
-    /// The scalar parameter applied to each normal 
+    /// The scalar parameter applied to each normal
     /// vector of the normal texture.
     scale: f32 = 1,
 };
@@ -135,15 +135,15 @@ const NormalTextureInfo = struct {
 const OcclusionTextureInfo = struct {
     /// The index of the texture.
     index: Index,
-    /// The set index of texture’s TEXCOORD attribute 
+    /// The set index of texture’s TEXCOORD attribute
     /// used for texture coordinate mapping.
     texcoord: i32 = 0,
     /// A scalar multiplier controlling the amount of occlusion applied.
     strength: f32 = 1,
 };
 
-/// A set of parameter values that are used to define 
-/// the metallic-roughness material model 
+/// A set of parameter values that are used to define
+/// the metallic-roughness material model
 /// from Physically-Based Rendering methodology.
 pub const MetallicRoughness = struct {
     /// The factors for the base color of the material.
@@ -162,8 +162,8 @@ pub const MetallicRoughness = struct {
 pub const Material = struct {
     /// The user-defined name of this object.
     name: []const u8,
-    /// A set of parameter values that are used to define 
-    /// the metallic-roughness material model 
+    /// A set of parameter values that are used to define
+    /// the metallic-roughness material model
     /// from Physically Based Rendering methodology.
     metallic_roughness: MetallicRoughness = .{},
     /// The tangent space normal texture.
@@ -180,48 +180,48 @@ pub const Material = struct {
     alpha_cutoff: f32 = 0.5,
     /// Specifies whether the material is double sided.
     /// If it's false, back-face culling is enabled.
-    /// If it's true, back-face culling is disabled and 
+    /// If it's true, back-face culling is disabled and
     /// double sided lighting is enabled.
     is_double_sided: bool = false,
 };
 
-/// The material’s alpha rendering mode enumeration specifying 
+/// The material’s alpha rendering mode enumeration specifying
 /// the interpretation of the alpha value of the base color.
 const AlphaMode = enum {
     /// The alpha value is ignored, and the rendered output is fully opaque.
     @"opaque",
-    /// The rendered output is either fully opaque or fully transparent 
+    /// The rendered output is either fully opaque or fully transparent
     /// depending on the alpha value and the specified alpha_cutoff value.
-    /// Note: The exact appearance of the edges may be subject to 
+    /// Note: The exact appearance of the edges may be subject to
     /// implementation-specific techniques such as “Alpha-to-Coverage”.
     mask,
-    /// The alpha value is used to composite the source and destination areas. 
-    /// The rendered output is combined with the background using 
+    /// The alpha value is used to composite the source and destination areas.
+    /// The rendered output is combined with the background using
     /// the normal painting operation (i.e. the Porter and Duff over operator).
     blend,
 };
 
 /// A texture and its sampler.
 pub const Texture = struct {
-    /// The index of the sampler used by this texture. 
-    /// When undefined, a sampler with repeat wrapping and 
+    /// The index of the sampler used by this texture.
+    /// When undefined, a sampler with repeat wrapping and
     /// auto filtering should be used.
     sampler: ?Index = null,
-    /// The index of the image used by this texture. 
-    /// When undefined, an extension or other mechanism should supply 
+    /// The index of the image used by this texture.
+    /// When undefined, an extension or other mechanism should supply
     /// an alternate texture source, otherwise behavior is undefined.
     source: ?Index = null,
 };
 
-/// Image data used to create a texture. 
+/// Image data used to create a texture.
 /// Image may be referenced by an uri or a buffer view index.
 pub const Image = struct {
     /// The URI (or IRI) of the image.
     uri: ?[]const u8 = null,
-    /// The image’s media type. 
+    /// The image’s media type.
     /// This field must be defined when bufferView is defined.
     mime_type: ?[]const u8 = null,
-    /// The index of the bufferView that contains the image. 
+    /// The index of the bufferView that contains the image.
     /// Note: This field must not be defined when uri is defined.
     buffer_view: ?Index = null,
 };
@@ -314,32 +314,32 @@ pub const Mode = enum(u32) {
 
 /// The name of the node’s TRS property to animate.
 pub const TargetProperty = enum {
-    /// For the "translation" property, the values that are provided by the 
-    /// sampler are the translation along the X, Y, and Z axes. 
+    /// For the "translation" property, the values that are provided by the
+    /// sampler are the translation along the X, Y, and Z axes.
     translation,
-    /// For the "rotation" property, the values are a quaternion 
+    /// For the "rotation" property, the values are a quaternion
     /// in the order (x, y, z, w), where w is the scalar.
     rotation,
-    /// For the "scale" property, the values are the scaling 
+    /// For the "scale" property, the values are the scaling
     /// factors along the X, Y, and Z axes.
     scale,
     /// The "weights" of the Morph Targets it instantiates.
     weights,
 };
 
-/// An animation channel combines an animation sampler 
+/// An animation channel combines an animation sampler
 /// with a target property being animated.
 pub const Channel = struct {
-    /// The index of a sampler in this animation used to 
+    /// The index of a sampler in this animation used to
     /// compute the value for the target.
     sampler: Index,
     /// The descriptor of the animated property.
     target: struct {
-        /// The index of the node to animate. 
+        /// The index of the node to animate.
         /// When undefined, the animated object may be defined by an extension.
         node: Index,
-        /// The name of the node’s TRS property to animate, or the "weights" 
-        /// of the Morph Targets it instantiates. 
+        /// The name of the node’s TRS property to animate, or the "weights"
+        /// of the Morph Targets it instantiates.
         property: TargetProperty,
     },
 };
@@ -347,18 +347,18 @@ pub const Channel = struct {
 /// Interpolation algorithm.
 pub const Interpolation = enum {
     /// The animated values are linearly interpolated between keyframes.
-    /// When targeting a rotation, spherical linear interpolation (slerp) 
-    /// should be used to interpolate quaternions. 
+    /// When targeting a rotation, spherical linear interpolation (slerp)
+    /// should be used to interpolate quaternions.
     linear,
-    /// The animated values remain constant to the output of the first 
+    /// The animated values remain constant to the output of the first
     /// keyframe, until the next keyframe.
     step,
-    /// The animation’s interpolation is computed using a cubic 
+    /// The animation’s interpolation is computed using a cubic
     /// spline with specified tangents.
     cubicspline,
 };
 
-/// An animation sampler combines timestamps 
+/// An animation sampler combines timestamps
 /// with a sequence of output values and defines an interpolation algorithm.
 pub const AnimationSampler = struct {
     /// The index of an accessor containing keyframe timestamps.
@@ -373,12 +373,12 @@ pub const AnimationSampler = struct {
 pub const Animation = struct {
     /// The user-defined name of this object.
     name: []const u8,
-    /// An array of animation channels. 
+    /// An array of animation channels.
     /// An animation channel combines an animation sampler with a target
     /// property being animated.
     /// Different channels of the same animation must not have the same targets.
     channels: ArrayList(Channel),
-    /// An array of animation samplers. 
+    /// An array of animation samplers.
     /// An animation sampler combines timestamps with a sequence of output
     /// values and defines an interpolation algorithm.
     samplers: ArrayList(AnimationSampler),
@@ -395,7 +395,7 @@ pub const Primitive = struct {
     material: ?Index = null,
 };
 
-/// A set of primitives to be rendered. 
+/// A set of primitives to be rendered.
 /// Its global transform is defined by a node that references it.
 pub const Mesh = struct {
     /// The user-defined name of this object.
@@ -414,16 +414,16 @@ pub const Asset = struct {
     copyright: ?[]const u8 = null,
 };
 
-/// A camera’s projection. 
-/// A node may reference a camera to apply a transform to place the camera 
+/// A camera’s projection.
+/// A node may reference a camera to apply a transform to place the camera
 /// in the scene.
 pub const Camera = struct {
-    /// A perspective camera containing properties to create a 
+    /// A perspective camera containing properties to create a
     /// perspective projection matrix.
     pub const Perspective = struct {
         /// The aspect ratio of the field of view.
         aspect_ratio: f32,
-        /// The vertical field of view in radians. 
+        /// The vertical field of view in radians.
         /// This value should be less than π.
         yfov: f32,
         /// The distance to the far clipping plane.
@@ -432,19 +432,19 @@ pub const Camera = struct {
         znear: f32,
     };
 
-    /// An orthographic camera containing properties to create an 
+    /// An orthographic camera containing properties to create an
     /// orthographic projection matrix.
     pub const Orthographic = struct {
-        /// The horizontal magnification of the view. 
-        /// This value must not be equal to zero. 
+        /// The horizontal magnification of the view.
+        /// This value must not be equal to zero.
         /// This value should not be negative.
         xmag: f32,
-        /// The vertical magnification of the view. 
-        /// This value must not be equal to zero. 
+        /// The vertical magnification of the view.
+        /// This value must not be equal to zero.
         /// This value should not be negative.
         ymag: f32,
-        /// The distance to the far clipping plane. 
-        /// This value must not be equal to zero. 
+        /// The distance to the far clipping plane.
+        /// This value must not be equal to zero.
         /// This value must be greater than znear.
         zfar: f32,
         /// The distance to the near clipping plane.

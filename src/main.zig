@@ -1,5 +1,5 @@
 ///
-/// glTF™ 2.0 Specification is available here: 
+/// glTF™ 2.0 Specification is available here:
 /// https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html
 ///
 const Self = @This();
@@ -950,9 +950,8 @@ pub fn debugPrint(self: *const Self) void {
     }
 }
 
-
 /// Retrieve actual data from a glTF BufferView through a given glTF Accessor.
-/// Note: This library won't pull to memory the binary buffer corresponding 
+/// Note: This library won't pull to memory the binary buffer corresponding
 /// to the BufferView.
 pub fn getDataFromBufferView(
     self: *const Self,
