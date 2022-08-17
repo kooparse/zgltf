@@ -897,6 +897,60 @@ pub fn parse(self: *Self, gltf_buffer: []const u8) !void {
     }
 }
 
+pub fn debugPrint(self: *const Self) void {
+    const msg =
+        \\
+        \\  glTF file info:
+        \\
+        \\    Node       {}
+        \\    Mesh       {}
+        \\    Skin       {}
+        \\    Animation  {}
+        \\    Texture    {}
+        \\    Material   {}
+        \\
+        \\
+    ;
+
+    print(msg, .{
+        self.data.nodes.items.len,
+        self.data.meshes.items.len,
+        self.data.skins.items.len,
+        self.data.animations.items.len,
+        self.data.textures.items.len,
+        self.data.materials.items.len,
+    });
+
+    print("  Details:\n\n", .{});
+
+    if (self.data.skins.items.len > 0) {
+        print("   Skins found:\n", .{});
+
+        for (self.data.skins.items) |skin| {
+            print("     '{s}' found with {} joint(s).\n", .{
+                skin.name,
+                skin.joints.items.len,
+            });
+        }
+
+        print("\n", .{});
+    }
+
+    if (self.data.animations.items.len > 0) {
+        print("  Animations found:\n", .{});
+
+        for (self.data.animations.items) |anim| {
+            print(
+                "     '{s}' found with {} sampler(s) and {} channel(s).\n",
+                .{ anim.name, anim.samplers.items.len, anim.channels.items.len },
+            );
+        }
+
+        print("\n", .{});
+    }
+}
+
+
 /// Retrieve actual data from a glTF BufferView through a given glTF Accessor.
 /// Note: This library won't pull to memory the binary buffer corresponding 
 /// to the BufferView.
