@@ -44,6 +44,9 @@ pub fn main() void {
             node.skin != null,
         });
     }
+
+    // Or use the debufPrint method.
+    gltf.debugPrint();
 }
 ```
 
