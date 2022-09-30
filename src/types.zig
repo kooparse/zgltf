@@ -51,7 +51,7 @@ pub const Buffer = struct {
     /// Relative paths are relative to the current glTF asset.
     /// It could contains a data:-URI instead of a path.
     /// Note: data-uri isn't implemented in this library.
-    uri: []const u8,
+    uri: ?[]const u8 = null,
     /// The length of the buffer in bytes.
     byte_length: usize,
 };

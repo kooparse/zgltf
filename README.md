@@ -94,7 +94,7 @@ for (mesh.primitives.items) |primitive| {
 - [x] Animations
 - [x] Skins
 - [x] Cameras
-- [ ] Parse `glb` files
+- [x] Parse `glb` files
 - [ ] Morth targets
 - [ ] Extras data
 - [ ] glTF writer
