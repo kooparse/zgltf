@@ -352,6 +352,17 @@ fn parseGlb(self: *Self, glb_buffer: []const u8) !void {
 
     try self.parseGltfJson(json_buffer);
     self.glb_binary = binary_buffer;
+
+    const buffer_views = self.data.buffer_views.items;
+
+    for (self.data.images.items) |*image| {
+        if (image.buffer_view) |buffer_view_index| {
+            const buffer_view = buffer_views[buffer_view_index];
+            const start = buffer_view.byte_offset;
+            const end = start + buffer_view.byte_length;
+            image.data = binary_buffer[start..end];
+        }
+    }
 }
 
 fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
@@ -1236,6 +1247,34 @@ test "gltf.parseGlb" {
             }
         }
     }
+}
+
+test "gltf.parseGlbTextured" {
+    const allocator = std.testing.allocator;
+    const expectEqualSlices = std.testing.expectEqualSlices;
+
+    // This is the '.glb' file.
+    const glb_buf = try std.fs.cwd().readFileAlloc(
+        allocator,
+        "test-samples/box_binary_textured/BoxTextured.glb",
+        512_000,
+    );
+    defer allocator.free(glb_buf);
+
+    var gltf = Self.init(allocator);
+    defer gltf.deinit();
+
+    try gltf.parseGlb(glb_buf);
+
+    const test_to_check = try std.fs.cwd().readFileAlloc(
+        allocator,
+        "test-samples/box_binary_textured/test.png",
+        512_000
+    );
+    defer allocator.free(test_to_check);
+
+    const data = gltf.data.images.items[0].data.?;
+    try expectEqualSlices(u8, test_to_check, data);
 }
 
 test "gltf.parse" {
