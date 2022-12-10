@@ -13,7 +13,7 @@ If you would like to contribute, don't hesitate! :)
 
 ```zig
 const std = @import("std");
-const Gltf = @import("Gltf.zig");
+const Gltf = @import("zgltf");
 
 const allocator = std.heap.page_allocator;
 const print = std.debug.print;
@@ -80,6 +80,15 @@ for (mesh.primitives.items) |primitive| {
     }
 }
 
+```
+
+## Install
+
+Import the `pkg` from `zgltf` into your `build.zig`:
+
+```zig
+const zgltf = @import("path-to-zgltf/build.zig");
+exe.addPackage(zgltf.pkg);
 ```
 
 ## Features
