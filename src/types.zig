@@ -224,7 +224,7 @@ pub const Image = struct {
     /// The index of the bufferView that contains the image.
     /// Note: This field must not be defined when uri is defined.
     buffer_view: ?Index = null,
-    /// The image's data calculated from the buffer/buffer_view. 
+    /// The image's data calculated from the buffer/buffer_view.
     /// Only there if glb file is loaded.
     data: ?[]const u8 = null,
 };
