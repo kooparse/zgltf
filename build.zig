@@ -2,14 +2,9 @@ const std = @import("std");
 const Builder = std.build.Builder;
 const Module = std.build.Module;
 
-pub const pkg = std.build.Pkg{
-    .name = "zgltf",
-    .source = .{ .path = thisDir() ++ "/src/main.zig" },
-};
-
 pub fn module(b: *Builder) *Module {
     return b.createModule(.{
-        .source_file = .{ .path = "src/main.zig" },
+        .source_file = .{ .path = thisDir() ++ "src/main.zig" },
     });
 }
 

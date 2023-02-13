@@ -84,11 +84,11 @@ for (mesh.primitives.items) |primitive| {
 
 ## Install
 
-Import the `pkg` from `zgltf` into your `build.zig`:
+Note: **Zig 0.11.x is required.**
 
 ```zig
 const zgltf = @import("path-to-zgltf/build.zig");
-exe.addPackage(zgltf.pkg);
+exe.addModule("zgltf", zgltf.module(b));
 ```
 
 ## Features
