@@ -1,16 +1,27 @@
 const std = @import("std");
 const Builder = std.build.Builder;
+const Module = std.build.Module;
 
 pub const pkg = std.build.Pkg{
     .name = "zgltf",
     .source = .{ .path = thisDir() ++ "/src/main.zig" },
 };
 
-pub fn build(b: *Builder) void {
-    const mode = b.standardReleaseOptions();
+pub fn module(b: *Builder) *Module {
+    return b.createModule(.{
+        .source_file = .{ .path = "src/main.zig" },
+    });
+}
 
-    var tests = b.addTest("src/main.zig");
-    tests.setBuildMode(mode);
+pub fn build(b: *Builder) void {
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
+
+    var tests = b.addTest(.{
+        .root_source_file = .{ .path = "src/main.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
 
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&tests.step);
