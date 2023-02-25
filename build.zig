@@ -2,15 +2,14 @@ const std = @import("std");
 const Builder = std.build.Builder;
 const Module = std.build.Module;
 
-pub fn module(b: *Builder) *Module {
-    return b.createModule(.{
-        .source_file = .{ .path = thisDir() ++ "src/main.zig" },
-    });
-}
-
 pub fn build(b: *Builder) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+
+    _ = b.addModule(.{
+        .name = "zgltf",
+        .source_file = .{ .path = "src/main.zig" },
+    });
 
     var tests = b.addTest(.{
         .root_source_file = .{ .path = "src/main.zig" },
@@ -20,8 +19,4 @@ pub fn build(b: *Builder) void {
 
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&tests.step);
-}
-
-fn thisDir() []const u8 {
-    return std.fs.path.dirname(@src().file) orelse ".";
 }

@@ -393,7 +393,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     }
 
     if (gltf.root.Object.get("nodes")) |nodes| {
-        for (nodes.Array.items) |item, index| {
+        for (nodes.Array.items, 0..) |item, index| {
             const object = item.Object;
 
             var node = Node{
@@ -426,19 +426,19 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             }
 
             if (object.get("rotation")) |rotation| {
-                for (rotation.Array.items) |component, i| {
+                for (rotation.Array.items, 0..) |component, i| {
                     node.rotation[i] = parseFloat(f32, component);
                 }
             }
 
             if (object.get("translation")) |translation| {
-                for (translation.Array.items) |component, i| {
+                for (translation.Array.items, 0..) |component, i| {
                     node.translation[i] = parseFloat(f32, component);
                 }
             }
 
             if (object.get("scale")) |scale| {
-                for (scale.Array.items) |component, i| {
+                for (scale.Array.items, 0..) |component, i| {
                     node.scale[i] = parseFloat(f32, component);
                 }
             }
@@ -451,7 +451,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                     0, 0, 0, 1,
                 };
 
-                for (matrix.Array.items) |component, i| {
+                for (matrix.Array.items, 0..) |component, i| {
                     node.matrix.?[i] = parseFloat(f32, component);
                 }
             }
@@ -461,7 +461,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     }
 
     if (gltf.root.Object.get("cameras")) |cameras| {
-        for (cameras.Array.items) |item, index| {
+        for (cameras.Array.items, 0..) |item, index| {
             const object = item.Object;
 
             var camera = Camera{
@@ -522,7 +522,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     }
 
     if (gltf.root.Object.get("skins")) |skins| {
-        for (skins.Array.items) |item, index| {
+        for (skins.Array.items, 0..) |item, index| {
             const object = item.Object;
 
             var skin = Skin{
@@ -555,7 +555,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     }
 
     if (gltf.root.Object.get("meshes")) |meshes| {
-        for (meshes.Array.items) |item, index| {
+        for (meshes.Array.items, 0..) |item, index| {
             const object = item.Object;
 
             var mesh: Mesh = .{
@@ -821,7 +821,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     }
 
     if (gltf.root.Object.get("scenes")) |scenes| {
-        for (scenes.Array.items) |item, index| {
+        for (scenes.Array.items, 0..) |item, index| {
             const object = item.Object;
 
             var scene = Scene{
@@ -847,7 +847,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     }
 
     if (gltf.root.Object.get("materials")) |materials| {
-        for (materials.Array.items) |item, m_index| {
+        for (materials.Array.items, 0..) |item, m_index| {
             const object = item.Object;
 
             var material = Material{
@@ -863,7 +863,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             if (object.get("pbrMetallicRoughness")) |pbrMetallicRoughness| {
                 var metallic_roughness: MetallicRoughness = .{};
                 if (pbrMetallicRoughness.Object.get("baseColorFactor")) |color_factor| {
-                    for (color_factor.Array.items) |factor, i| {
+                    for (color_factor.Array.items, 0..) |factor, i| {
                         metallic_roughness.base_color_factor[i] = parseFloat(f32, factor);
                     }
                 }
@@ -978,7 +978,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             }
 
             if (object.get("emissiveFactor")) |emissive_factor| {
-                for (emissive_factor.Array.items) |factor, i| {
+                for (emissive_factor.Array.items, 0..) |factor, i| {
                     material.emissive_factor[i] = parseFloat(f32, factor);
                 }
             }
@@ -1004,7 +1004,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     }
 
     if (gltf.root.Object.get("animations")) |animations| {
-        for (animations.Array.items) |item, index| {
+        for (animations.Array.items, 0..) |item, index| {
             const object = item.Object;
 
             var animation = Animation{

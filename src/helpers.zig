@@ -82,8 +82,8 @@ pub fn recompose(translation: Vec3, rotation: Quat, scale: Vec3) Mat4 {
 pub fn mul(left: Mat4, right: Mat4) Mat4 {
     var result = identity;
 
-    for (result) |_, column| {
-        for (result[column]) |_, row| {
+    for (result, 0..) |_, column| {
+        for (result[column], 0..) |_, row| {
             var sum: f32 = 0;
             var left_column: usize = 0;
 
