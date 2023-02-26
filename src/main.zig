@@ -9,6 +9,7 @@ const helpers = @import("./helpers.zig");
 const types = @import("./types.zig");
 
 const mem = std.mem;
+const math = std.math;
 const json = std.json;
 const fmt = std.fmt;
 const panic = std.debug.panic;
@@ -1166,12 +1167,12 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         if (extensions.Object.get("KHR_lights_punctual")) |lights_punctual| {
             if (lights_punctual.Object.get("lights")) |lights| {
                 for (lights.Array.items) |item| {
-                    const object: std.json.ObjectMap = item.Object;
+                    const object: json.ObjectMap = item.Object;
 
                     var light = Light{
                         .name = null,
                         .type = undefined,
-                        .range = std.math.inf(f32),
+                        .range = math.inf(f32),
                         .spot = null,
                     };
 
@@ -1181,73 +1182,33 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
 
                     if (object.get("color")) |color| {
                         for (color.Array.items, 0..) |component, i| {
-                            switch (component) {
-                                .Float => |float| {
-                                    light.color[i] = @floatCast(f32, float);
-                                },
-                                .Integer => |integer| {
-                                    light.color[i] = @intToFloat(f32, integer);
-                                },
-                                else => unreachable,
-                            }
+                            light.color[i] = parseFloat(f32, component);
                         }
                     }
 
                     if (object.get("intensity")) |intensity| {
-                        switch (intensity) {
-                            .Float => |float| {
-                                light.intensity = @floatCast(f32, float);
-                            },
-                            .Integer => |integer| {
-                                light.intensity = @intToFloat(f32, integer);
-                            },
-                            else => unreachable,
-                        }
+                        light.intensity = parseFloat(f32, intensity);
                     }
 
                     if (object.get("type")) |@"type"| {
-                        const light_type = std.meta.stringToEnum(LightType, @"type".String) orelse unreachable;
-
-                        light.type = light_type;
+                        if (std.meta.stringToEnum(LightType, @"type".String)) |light_type| {
+                            light.type = light_type;
+                        } else panic("Light's type invalid", .{});
                     }
 
                     if (object.get("range")) |range| {
-                        switch (range) {
-                            .Float => |float| {
-                                light.range = @floatCast(f32, float);
-                            },
-                            .Integer => |integer| {
-                                light.range = @intToFloat(f32, integer);
-                            },
-                            else => unreachable,
-                        }
+                        light.range = parseFloat(f32, range);
                     }
 
                     if (object.get("spot")) |spot| {
                         light.spot = .{};
 
                         if (spot.Object.get("innerConeAngle")) |inner_cone_angle| {
-                            switch (inner_cone_angle) {
-                                .Float => |float| {
-                                    light.spot.?.inner_cone_angle = @floatCast(f32, float);
-                                },
-                                .Integer => |integer| {
-                                    light.spot.?.inner_cone_angle = @intToFloat(f32, integer);
-                                },
-                                else => undefined,
-                            }
+                            light.spot.?.inner_cone_angle = parseFloat(f32, inner_cone_angle);
                         }
 
                         if (spot.Object.get("outerConeAngle")) |outer_cone_angle| {
-                            switch (outer_cone_angle) {
-                                .Float => |float| {
-                                    light.spot.?.outer_cone_angle = @floatCast(f32, float);
-                                },
-                                .Integer => |integer| {
-                                    light.spot.?.outer_cone_angle = @intToFloat(f32, integer);
-                                },
-                                else => undefined,
-                            }
+                            light.spot.?.outer_cone_angle = parseFloat(f32, outer_cone_angle);
                         }
                     }
 
