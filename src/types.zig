@@ -463,22 +463,41 @@ pub const Camera = struct {
     },
 };
 
+///Specifies the light type
 pub const LightType = enum {
+    ///Directional lights act as though they are infinitely far away and emit light in the direction of the local -z axis.
+    ///This light type inherits the orientation of the node that it belongs to; position and scale are ignored except for their effect on the inherited node orientation.
+    ///Because it is at an infinite distance, the light is not attenuated. Its intensity is defined in lumens per metre squared, or lux (lm/m^2).
     directional,
-    point, 
+    ///Point lights emit light in all directions from their position in space; rotation and scale are ignored except for their effect on the inherited node position.
+    ///The brightness of the light attenuates in a physically correct manner as distance increases from the light's position (i.e. brightness goes like the inverse square of the distance).
+    ///Point light intensity is defined in candela, which is lumens per square radian (lm/sr).
+    point,
+    ///Spot lights emit light in a cone in the direction of the local -z axis.
+    ///The angle and falloff of the cone is defined using two numbers, the innerConeAngle and outerConeAngle.
+    ///As with point lights, the brightness also attenuates in a physically correct manner as distance increases from the light's position (i.e. brightness goes like the inverse square of the distance).
+    ///Spot light intensity refers to the brightness inside the innerConeAngle (and at the location of the light) and is defined in candela, which is lumens per square radian (lm/sr).
+    ///Engines that don't support two angles for spotlights should use outerConeAngle as the spotlight angle (leaving innerConeAngle to implicitly be 0).
     spot,
 };
 
+///A directional, point or spot light
 pub const Light = struct {
     name: ?[]const u8,
+    ///Color of the light source.
     color: [3]f32 = .{ 1, 1, 1 },
+    ///Intensity of the light source. `point` and `spot` lights use luminous intensity in candela (lm/sr) while `directional` lights use illuminance in lux (lm/m^2)
     intensity: f32 = 1,
+    ///Specifies the light type
     type: LightType,
     spot: ?LightSpot,
+    ///A distance cutoff at which the light's intensity may be considered to have reached zero.
     range: f32,
 };
 
 pub const LightSpot = struct {
+    ///Angle in radians from centre of spotlight where falloff begins.
     inner_cone_angle: f32 = 0,
+    ///Angle in radians from centre of spotlight where falloff ends.
     outer_cone_angle: f32 = std.math.pi / @as(f32, 4),
 };
