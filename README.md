@@ -107,7 +107,10 @@ exe.addModule("zgltf", zgltf.module(b));
 - [ ] Morth targets
 - [ ] Extras data
 - [ ] glTF writer
-- [ ] glTF extensions
+
+Also, we supports some glTF extensions:
+
+- [x] khr_lights_punctual
 
 ## Contributing to the project
 
