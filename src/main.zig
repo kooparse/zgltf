@@ -460,12 +460,9 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                 }
             }
 
-            if (object.get("extensions")) |extensions|
-            {
-                if (extensions.Object.get("KHR_lights_punctual")) |lights_punctual|
-                {
-                    if (lights_punctual.Object.get("light")) |light|
-                    {
+            if (object.get("extensions")) |extensions| {
+                if (extensions.Object.get("KHR_lights_punctual")) |lights_punctual| {
+                    if (lights_punctual.Object.get("light")) |light| {
                         node.light = @intCast(Index, light.Integer);
                     }
                 }
@@ -1164,34 +1161,26 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.Object.get("extensions")) |extensions|
-    {
-        if (extensions.Object.get("KHR_lights_punctual")) |lights_punctual|
-        {
-            if (lights_punctual.Object.get("lights")) |lights|
-            {
-                for (lights.Array.items) |item|
-                {
+    if (gltf.root.Object.get("extensions")) |extensions| {
+        if (extensions.Object.get("KHR_lights_punctual")) |lights_punctual| {
+            if (lights_punctual.Object.get("lights")) |lights| {
+                for (lights.Array.items) |item| {
                     const object: std.json.ObjectMap = item.Object;
 
-                    var light = Light {
+                    var light = Light{
                         .name = null,
                         .type = undefined,
                         .range = std.math.inf(f32),
                         .spot = null,
                     };
 
-                    if (object.get("name")) |name|
-                    {
+                    if (object.get("name")) |name| {
                         light.name = try alloc.dupe(u8, name.String);
                     }
 
-                    if (object.get("color")) |color|
-                    {
-                        for (color.Array.items, 0..) |component, i|
-                        {
-                            switch (component)
-                            {
+                    if (object.get("color")) |color| {
+                        for (color.Array.items, 0..) |component, i| {
+                            switch (component) {
                                 .Float => |float| {
                                     light.color[i] = @floatCast(f32, float);
                                 },
@@ -1203,10 +1192,8 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                         }
                     }
 
-                    if (object.get("intensity")) |intensity|
-                    {
-                        switch (intensity)
-                        {
+                    if (object.get("intensity")) |intensity| {
+                        switch (intensity) {
                             .Float => |float| {
                                 light.intensity = @floatCast(f32, float);
                             },
@@ -1214,20 +1201,17 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                                 light.intensity = @intToFloat(f32, integer);
                             },
                             else => unreachable,
-                        }                        
+                        }
                     }
 
-                    if (object.get("type")) |@"type"|
-                    {
+                    if (object.get("type")) |@"type"| {
                         const light_type = std.meta.stringToEnum(LightType, @"type".String) orelse unreachable;
 
                         light.type = light_type;
                     }
 
-                    if (object.get("range")) |range|
-                    {
-                        switch (range)
-                        {
+                    if (object.get("range")) |range| {
+                        switch (range) {
                             .Float => |float| {
                                 light.range = @floatCast(f32, float);
                             },
@@ -1235,17 +1219,14 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                                 light.range = @intToFloat(f32, integer);
                             },
                             else => unreachable,
-                        }  
+                        }
                     }
 
-                    if (object.get("spot")) |spot|
-                    {
+                    if (object.get("spot")) |spot| {
                         light.spot = .{};
 
-                        if (spot.Object.get("innerConeAngle")) |inner_cone_angle|
-                        {
-                            switch (inner_cone_angle)
-                            {
+                        if (spot.Object.get("innerConeAngle")) |inner_cone_angle| {
+                            switch (inner_cone_angle) {
                                 .Float => |float| {
                                     light.spot.?.inner_cone_angle = @floatCast(f32, float);
                                 },
@@ -1256,10 +1237,8 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                             }
                         }
 
-                        if (spot.Object.get("outerConeAngle")) |outer_cone_angle|
-                        {
-                            switch (outer_cone_angle)
-                            {
+                        if (spot.Object.get("outerConeAngle")) |outer_cone_angle| {
+                            switch (outer_cone_angle) {
                                 .Float => |float| {
                                     light.spot.?.outer_cone_angle = @floatCast(f32, float);
                                 },
@@ -1538,8 +1517,7 @@ test "gltf.getDataFromBufferView" {
     }
 }
 
-test "gltf.parse (lights)"
-{
+test "gltf.parse (lights)" {
     const allocator = std.testing.allocator;
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
