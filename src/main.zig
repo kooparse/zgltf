@@ -48,6 +48,8 @@ pub const MinFilter = types.MinFilter;
 pub const WrapMode = types.WrapMode;
 pub const TargetProperty = types.TargetProperty;
 pub const Asset = types.Asset;
+pub const LightType = types.LightType;
+pub const Light = types.Light;
 
 pub const Data = struct {
     asset: Asset,
@@ -65,6 +67,7 @@ pub const Data = struct {
     accessors: ArrayList(Accessor),
     buffer_views: ArrayList(BufferView),
     buffers: ArrayList(Buffer),
+    lights: ArrayList(Light),
 };
 
 arena: *ArenaAllocator,
@@ -97,6 +100,7 @@ pub fn init(allocator: Allocator) Self {
             .accessors = ArrayList(Accessor).init(alloc),
             .buffer_views = ArrayList(BufferView).init(alloc),
             .buffers = ArrayList(Buffer).init(alloc),
+            .lights = ArrayList(Light).init(alloc),
         },
     };
 }
@@ -453,6 +457,17 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
 
                 for (matrix.Array.items, 0..) |component, i| {
                     node.matrix.?[i] = parseFloat(f32, component);
+                }
+            }
+
+            if (object.get("extensions")) |extensions|
+            {
+                if (extensions.Object.get("KHR_lights_punctual")) |lights_punctual|
+                {
+                    if (lights_punctual.Object.get("light")) |light|
+                    {
+                        node.light = @intCast(Index, light.Integer);
+                    }
                 }
             }
 
@@ -1149,6 +1164,119 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
+    if (gltf.root.Object.get("extensions")) |extensions|
+    {
+        if (extensions.Object.get("KHR_lights_punctual")) |lights_punctual|
+        {
+            if (lights_punctual.Object.get("lights")) |lights|
+            {
+                for (lights.Array.items) |item|
+                {
+                    const object: std.json.ObjectMap = item.Object;
+
+                    var light = Light {
+                        .name = null,
+                        .type = undefined,
+                        .range = std.math.inf(f32),
+                        .spot = null,
+                    };
+
+                    if (object.get("name")) |name|
+                    {
+                        light.name = try alloc.dupe(u8, name.String);
+                    }
+
+                    if (object.get("color")) |color|
+                    {
+                        for (color.Array.items, 0..) |component, i|
+                        {
+                            switch (component)
+                            {
+                                .Float => |float| {
+                                    light.color[i] = @floatCast(f32, float);
+                                },
+                                .Integer => |integer| {
+                                    light.color[i] = @intToFloat(f32, integer);
+                                },
+                                else => unreachable,
+                            }
+                        }
+                    }
+
+                    if (object.get("intensity")) |intensity|
+                    {
+                        switch (intensity)
+                        {
+                            .Float => |float| {
+                                light.intensity = @floatCast(f32, float);
+                            },
+                            .Integer => |integer| {
+                                light.intensity = @intToFloat(f32, integer);
+                            },
+                            else => unreachable,
+                        }                        
+                    }
+
+                    if (object.get("type")) |@"type"|
+                    {
+                        const light_type = std.meta.stringToEnum(LightType, @"type".String) orelse unreachable;
+
+                        light.type = light_type;
+                    }
+
+                    if (object.get("range")) |range|
+                    {
+                        switch (range)
+                        {
+                            .Float => |float| {
+                                light.range = @floatCast(f32, float);
+                            },
+                            .Integer => |integer| {
+                                light.range = @intToFloat(f32, integer);
+                            },
+                            else => unreachable,
+                        }  
+                    }
+
+                    if (object.get("spot")) |spot|
+                    {
+                        light.spot = .{};
+
+                        if (spot.Object.get("innerConeAngle")) |inner_cone_angle|
+                        {
+                            switch (inner_cone_angle)
+                            {
+                                .Float => |float| {
+                                    light.spot.?.inner_cone_angle = @floatCast(f32, float);
+                                },
+                                .Integer => |integer| {
+                                    light.spot.?.inner_cone_angle = @intToFloat(f32, integer);
+                                },
+                                else => undefined,
+                            }
+                        }
+
+                        if (spot.Object.get("outerConeAngle")) |outer_cone_angle|
+                        {
+                            switch (outer_cone_angle)
+                            {
+                                .Float => |float| {
+                                    light.spot.?.outer_cone_angle = @floatCast(f32, float);
+                                },
+                                .Integer => |integer| {
+                                    light.spot.?.outer_cone_angle = @intToFloat(f32, integer);
+                                },
+                                else => undefined,
+                            }
+                        }
+                    }
+
+                    try self.data.lights.append(light);
+                }
+            }
+        }
+    }
+
     // For each node, fill parent indexes.
     for (self.data.scenes.items) |scene| {
         if (scene.nodes) |nodes| {
@@ -1408,4 +1536,50 @@ test "gltf.getDataFromBufferView" {
             }
         }
     }
+}
+
+test "gltf.parse (lights)"
+{
+    const allocator = std.testing.allocator;
+    const expect = std.testing.expect;
+    const expectEqual = std.testing.expectEqual;
+
+    const buf = try std.fs.cwd().readFileAlloc(
+        allocator,
+        "test-samples/khr_lights_punctual/Lights.gltf",
+        512_000,
+    );
+    defer allocator.free(buf);
+
+    var gltf = Self.init(allocator);
+    defer gltf.deinit();
+
+    try gltf.parse(buf);
+
+    try expectEqual(@as(usize, 3), gltf.data.lights.items.len);
+
+    try expect(gltf.data.lights.items[0].name != null);
+    try expect(std.mem.eql(u8, "Light", gltf.data.lights.items[0].name.?));
+    try expectEqual([3]f32 { 1, 1, 1 }, gltf.data.lights.items[0].color);
+    try expectEqual(@as(f32, 1000), gltf.data.lights.items[0].intensity);
+    try expectEqual(LightType.point, gltf.data.lights.items[0].type);
+
+    try expect(gltf.data.lights.items[1].name != null);
+    try expect(std.mem.eql(u8, "Light.001", gltf.data.lights.items[1].name.?));
+    try expectEqual([3]f32 { 1, 1, 1 }, gltf.data.lights.items[1].color);
+    try expectEqual(@as(f32, 1000), gltf.data.lights.items[1].intensity);
+    try expectEqual(LightType.spot, gltf.data.lights.items[1].type);
+
+    try expect(gltf.data.lights.items[1].spot != null);
+    try expectEqual(@as(f32, 0), gltf.data.lights.items[1].spot.?.inner_cone_angle);
+    try expectEqual(@as(f32, 1), gltf.data.lights.items[1].spot.?.outer_cone_angle);
+
+    try expect(gltf.data.lights.items[2].name != null);
+    try expect(std.mem.eql(u8, "Light.002", gltf.data.lights.items[2].name.?));
+    try expectEqual([3]f32 { 1, 1, 1 }, gltf.data.lights.items[2].color);
+    try expectEqual(@as(f32, 1000), gltf.data.lights.items[2].intensity);
+    try expectEqual(LightType.directional, gltf.data.lights.items[2].type);
+
+    try expect(gltf.data.nodes.items[0].light != null);
+    try expectEqual(@as(?Index, 0), gltf.data.nodes.items[0].light);
 }

@@ -44,6 +44,8 @@ pub const Node = struct {
     /// The number of array elements must match the number of morph targets
     /// of the referenced mesh. When defined, mesh mush also be defined.
     weights: ?[]usize = null,
+    ///The index of the light referenced by this node.
+    light: ?Index = null,
 };
 
 /// A buffer points to binary geometry, animation, or skins.
@@ -459,4 +461,24 @@ pub const Camera = struct {
         perspective: Perspective,
         orthographic: Orthographic,
     },
+};
+
+pub const LightType = enum {
+    directional,
+    point, 
+    spot,
+};
+
+pub const Light = struct {
+    name: ?[]const u8,
+    color: [3]f32 = .{ 1, 1, 1 },
+    intensity: f32 = 1,
+    type: LightType,
+    spot: ?LightSpot,
+    range: f32,
+};
+
+pub const LightSpot = struct {
+    inner_cone_angle: f32 = 0,
+    outer_cone_angle: f32 = std.math.pi / @as(f32, 4),
 };
