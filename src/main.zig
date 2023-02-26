@@ -50,6 +50,7 @@ pub const TargetProperty = types.TargetProperty;
 pub const Asset = types.Asset;
 pub const LightType = types.LightType;
 pub const Light = types.Light;
+pub const LightSpot = types.LightSpot;
 
 pub const Data = struct {
     asset: Asset,
