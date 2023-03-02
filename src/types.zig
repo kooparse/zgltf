@@ -186,6 +186,8 @@ pub const Material = struct {
     /// If it's true, back-face culling is disabled and
     /// double sided lighting is enabled.
     is_double_sided: bool = false,
+    /// Emissive strength multiplier for the emissive factor/texture
+    emissive_strength: f32 = 1.0,
 };
 
 /// The material’s alpha rendering mode enumeration specifying

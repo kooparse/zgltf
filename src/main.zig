@@ -997,6 +997,14 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                 }
             }
 
+            if (object.get("extensions")) |extensions| {
+                if (extensions.Object.get("KHR_materials_emissive_strength")) |materials_emissive_strength| {
+                    if (materials_emissive_strength.Object.get("emissiveStrength")) |emissive_strength| {
+                        material.emissive_strength = parseFloat(f32, emissive_strength);
+                    }
+                }
+            }
+
             try self.data.materials.append(material);
         }
     }
