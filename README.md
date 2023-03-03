@@ -111,6 +111,7 @@ exe.addModule("zgltf", zgltf.module(b));
 Also, we supports some glTF extensions:
 
 - [x] khr_lights_punctual
+- [x] khr_materials_emissive_strength
 
 ## Contributing to the project
 
