@@ -187,6 +187,7 @@ pub const Material = struct {
     /// double sided lighting is enabled.
     is_double_sided: bool = false,
     /// Emissive strength multiplier for the emissive factor/texture
+    /// Note: from khr_materials_emissive_strength extension.
     emissive_strength: f32 = 1.0,
 };
 
