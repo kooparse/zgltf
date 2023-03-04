@@ -192,6 +192,12 @@ pub const Material = struct {
     /// Index of refraction of material.
     /// Note: from khr_materials_ior extension.
     ior: f32 = 1.5,
+    /// The factor for the transmission of the material.
+    /// Note: from khr_materials_transmission extension.
+    transmission_factor: f32 = 0.0,
+    /// The transmission texture.
+    /// Note: from khr_materials_transmission extension.
+    transmission_texture: ?TextureInfo = null,
 };
 
 /// The material’s alpha rendering mode enumeration specifying

@@ -113,6 +113,7 @@ Also, we supports some glTF extensions:
 - [x] khr_lights_punctual
 - [x] khr_materials_emissive_strength
 - [x] khr_materials_ior
+- [x] khr_materials_transmission
 
 ## Contributing to the project
 

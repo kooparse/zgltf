@@ -1009,6 +1009,26 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                         material.ior = parseFloat(f32, ior);
                     }
                 }
+
+                if (extensions.Object.get("KHR_materials_transmission")) |materials_transmission| {
+                    if (materials_transmission.Object.get("transmissionFactor")) |transmission_factor| {
+                        material.transmission_factor = parseFloat(f32, transmission_factor);
+                    }
+
+                    if (materials_transmission.Object.get("transmissionTexture")) |transmission_texture| {
+                        material.transmission_texture = .{
+                            .index = undefined,
+                        };
+
+                        if (transmission_texture.Object.get("index")) |index| {
+                            material.transmission_texture.?.index = parseIndex(index);
+                        }
+
+                        if (transmission_texture.Object.get("texCoord")) |index| {
+                            material.transmission_texture.?.texcoord = @intCast(i32, index.Integer);
+                        }
+                    }
+                }
             }
 
             try self.data.materials.append(material);
