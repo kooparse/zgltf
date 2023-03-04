@@ -1003,6 +1003,12 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                         material.emissive_strength = parseFloat(f32, emissive_strength);
                     }
                 }
+
+                if (extensions.Object.get("KHR_materials_ior")) |materials_ior| {
+                    if (materials_ior.Object.get("ior")) |ior| {
+                        material.ior = parseFloat(f32, ior);
+                    }
+                }
             }
 
             try self.data.materials.append(material);
