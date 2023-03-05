@@ -6,8 +6,7 @@ pub fn build(b: *Builder) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    _ = b.addModule(.{
-        .name = "zgltf",
+    _ = b.addModule("zgltf", .{
         .source_file = .{ .path = "src/main.zig" },
     });
 
