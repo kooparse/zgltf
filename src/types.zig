@@ -186,9 +186,18 @@ pub const Material = struct {
     /// If it's true, back-face culling is disabled and
     /// double sided lighting is enabled.
     is_double_sided: bool = false,
-    /// Emissive strength multiplier for the emissive factor/texture
+    /// Emissive strength multiplier for the emissive factor/texture.
     /// Note: from khr_materials_emissive_strength extension.
     emissive_strength: f32 = 1.0,
+    /// Index of refraction of material.
+    /// Note: from khr_materials_ior extension.
+    ior: f32 = 1.5,
+    /// The factor for the transmission of the material.
+    /// Note: from khr_materials_transmission extension.
+    transmission_factor: f32 = 0.0,
+    /// The transmission texture.
+    /// Note: from khr_materials_transmission extension.
+    transmission_texture: ?TextureInfo = null,
 };
 
 /// The material’s alpha rendering mode enumeration specifying
