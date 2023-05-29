@@ -1267,7 +1267,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
 // this function casts Integer to 'usize'.
 fn parseIndex(component: json.Value) usize {
     return switch (component) {
-       .integer => |val| @intCast(usize, val),
+        .integer => |val| @intCast(usize, val),
         else => panic(
             "The json component '{any}' is not valid number.",
             .{component},
@@ -1287,8 +1287,8 @@ fn parseFloat(comptime T: type, component: json.Value) T {
     }
 
     return switch (component) {
-       .float => |val| @floatCast(T, val),
-       .integer => |val| @intToFloat(T, val),
+        .float => |val| @floatCast(T, val),
+        .integer => |val| @intToFloat(T, val),
         else => panic(
             "The json component '{any}' is not a number.",
             .{component},
