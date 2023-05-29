@@ -5,8 +5,8 @@
 const Self = @This();
 
 const std = @import("std");
-const helpers = @import("./helpers.zig");
-const types = @import("./types.zig");
+const helpers = @import("helpers.zig");
+const types = @import("types.zig");
 
 const mem = std.mem;
 const math = std.math;
@@ -374,33 +374,33 @@ fn parseGlb(self: *Self, glb_buffer: []const u8) !void {
 fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     const alloc = self.arena.allocator();
 
-    var parser = json.Parser.init(alloc, false);
+    var parser = json.Parser.init(alloc, .alloc_if_needed);
     defer parser.deinit();
 
     var gltf = try parser.parse(gltf_json);
     defer gltf.deinit();
 
-    if (gltf.root.Object.get("asset")) |json_value| {
+    if (gltf.root.object.get("asset")) |json_value| {
         var asset = &self.data.asset;
 
-        if (json_value.Object.get("version")) |version| {
-            asset.version = try alloc.dupe(u8, version.String);
+        if (json_value.object.get("version")) |version| {
+            asset.version = try alloc.dupe(u8, version.string);
         } else {
             panic("Asset's version is missing.", .{});
         }
 
-        if (json_value.Object.get("generator")) |generator| {
-            asset.generator = try alloc.dupe(u8, generator.String);
+        if (json_value.object.get("generator")) |generator| {
+            asset.generator = try alloc.dupe(u8, generator.string);
         }
 
-        if (json_value.Object.get("copyright")) |copyright| {
-            asset.copyright = try alloc.dupe(u8, copyright.String);
+        if (json_value.object.get("copyright")) |copyright| {
+            asset.copyright = try alloc.dupe(u8, copyright.string);
         }
     }
 
-    if (gltf.root.Object.get("nodes")) |nodes| {
-        for (nodes.Array.items, 0..) |item, index| {
-            const object = item.Object;
+    if (gltf.root.object.get("nodes")) |nodes| {
+        for (nodes.array.items, 0..) |item, index| {
+            const object = item.object;
 
             var node = Node{
                 .name = undefined,
@@ -408,7 +408,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             };
 
             if (object.get("name")) |name| {
-                node.name = try alloc.dupe(u8, name.String);
+                node.name = try alloc.dupe(u8, name.string);
             } else {
                 node.name = try fmt.allocPrint(alloc, "Node_{}", .{index});
             }
@@ -426,25 +426,25 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             }
 
             if (object.get("children")) |children| {
-                for (children.Array.items) |value| {
+                for (children.array.items) |value| {
                     try node.children.append(parseIndex(value));
                 }
             }
 
             if (object.get("rotation")) |rotation| {
-                for (rotation.Array.items, 0..) |component, i| {
+                for (rotation.array.items, 0..) |component, i| {
                     node.rotation[i] = parseFloat(f32, component);
                 }
             }
 
             if (object.get("translation")) |translation| {
-                for (translation.Array.items, 0..) |component, i| {
+                for (translation.array.items, 0..) |component, i| {
                     node.translation[i] = parseFloat(f32, component);
                 }
             }
 
             if (object.get("scale")) |scale| {
-                for (scale.Array.items, 0..) |component, i| {
+                for (scale.array.items, 0..) |component, i| {
                     node.scale[i] = parseFloat(f32, component);
                 }
             }
@@ -457,15 +457,15 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                     0, 0, 0, 1,
                 };
 
-                for (matrix.Array.items, 0..) |component, i| {
+                for (matrix.array.items, 0..) |component, i| {
                     node.matrix.?[i] = parseFloat(f32, component);
                 }
             }
 
             if (object.get("extensions")) |extensions| {
-                if (extensions.Object.get("KHR_lights_punctual")) |lights_punctual| {
-                    if (lights_punctual.Object.get("light")) |light| {
-                        node.light = @intCast(Index, light.Integer);
+                if (extensions.object.get("KHR_lights_punctual")) |lights_punctual| {
+                    if (lights_punctual.object.get("light")) |light| {
+                        node.light = @intCast(Index, light.integer);
                     }
                 }
             }
@@ -474,9 +474,9 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.Object.get("cameras")) |cameras| {
-        for (cameras.Array.items, 0..) |item, index| {
-            const object = item.Object;
+    if (gltf.root.object.get("cameras")) |cameras| {
+        for (cameras.array.items, 0..) |item, index| {
+            const object = item.object;
 
             var camera = Camera{
                 .name = undefined,
@@ -484,15 +484,15 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             };
 
             if (object.get("name")) |name| {
-                camera.name = try alloc.dupe(u8, name.String);
+                camera.name = try alloc.dupe(u8, name.string);
             } else {
                 camera.name = try fmt.allocPrint(alloc, "Camera_{}", .{index});
             }
 
             if (object.get("type")) |name| {
-                if (mem.eql(u8, name.String, "perspective")) {
+                if (mem.eql(u8, name.string, "perspective")) {
                     if (object.get("perspective")) |perspective| {
-                        var value = perspective.Object;
+                        var value = perspective.object;
 
                         camera.type = .{
                             .perspective = .{
@@ -508,9 +508,9 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                     } else {
                         panic("Camera's perspective value is missing.", .{});
                     }
-                } else if (mem.eql(u8, name.String, "orthographic")) {
+                } else if (mem.eql(u8, name.string, "orthographic")) {
                     if (object.get("orthographic")) |orthographic| {
-                        var value = orthographic.Object;
+                        var value = orthographic.object;
 
                         camera.type = .{
                             .orthographic = .{
@@ -535,9 +535,9 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.Object.get("skins")) |skins| {
-        for (skins.Array.items, 0..) |item, index| {
-            const object = item.Object;
+    if (gltf.root.object.get("skins")) |skins| {
+        for (skins.array.items, 0..) |item, index| {
+            const object = item.object;
 
             var skin = Skin{
                 .name = undefined,
@@ -545,13 +545,13 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             };
 
             if (object.get("name")) |name| {
-                skin.name = try alloc.dupe(u8, name.String);
+                skin.name = try alloc.dupe(u8, name.string);
             } else {
                 skin.name = try fmt.allocPrint(alloc, "Skin_{}", .{index});
             }
 
             if (object.get("joints")) |joints| {
-                for (joints.Array.items) |join| {
+                for (joints.array.items) |join| {
                     try skin.joints.append(parseIndex(join));
                 }
             }
@@ -568,9 +568,9 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.Object.get("meshes")) |meshes| {
-        for (meshes.Array.items, 0..) |item, index| {
-            const object = item.Object;
+    if (gltf.root.object.get("meshes")) |meshes| {
+        for (meshes.array.items, 0..) |item, index| {
+            const object = item.object;
 
             var mesh: Mesh = .{
                 .name = undefined,
@@ -578,31 +578,31 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             };
 
             if (object.get("name")) |name| {
-                mesh.name = try alloc.dupe(u8, name.String);
+                mesh.name = try alloc.dupe(u8, name.string);
             } else {
                 mesh.name = try fmt.allocPrint(alloc, "Mesh_{}", .{index});
             }
 
             if (object.get("primitives")) |primitives| {
-                for (primitives.Array.items) |prim_item| {
+                for (primitives.array.items) |prim_item| {
                     var primitive: Primitive = .{
                         .attributes = ArrayList(Attribute).init(alloc),
                     };
 
-                    if (prim_item.Object.get("mode")) |mode| {
-                        primitive.mode = @intToEnum(Mode, mode.Integer);
+                    if (prim_item.object.get("mode")) |mode| {
+                        primitive.mode = @intToEnum(Mode, mode.integer);
                     }
 
-                    if (prim_item.Object.get("indices")) |indices| {
+                    if (prim_item.object.get("indices")) |indices| {
                         primitive.indices = parseIndex(indices);
                     }
 
-                    if (prim_item.Object.get("material")) |material| {
+                    if (prim_item.object.get("material")) |material| {
                         primitive.material = parseIndex(material);
                     }
 
-                    if (prim_item.Object.get("attributes")) |attributes| {
-                        if (attributes.Object.get("POSITION")) |position| {
+                    if (prim_item.object.get("attributes")) |attributes| {
+                        if (attributes.object.get("POSITION")) |position| {
                             try primitive.attributes.append(
                                 .{
                                     .position = parseIndex(position),
@@ -610,7 +610,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                             );
                         }
 
-                        if (attributes.Object.get("NORMAL")) |normal| {
+                        if (attributes.object.get("NORMAL")) |normal| {
                             try primitive.attributes.append(
                                 .{
                                     .normal = parseIndex(normal),
@@ -618,7 +618,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                             );
                         }
 
-                        if (attributes.Object.get("TANGENT")) |tangent| {
+                        if (attributes.object.get("TANGENT")) |tangent| {
                             try primitive.attributes.append(
                                 .{
                                     .tangent = parseIndex(tangent),
@@ -637,7 +637,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                         };
 
                         for (texcoords) |tex_name| {
-                            if (attributes.Object.get(tex_name)) |texcoord| {
+                            if (attributes.object.get(tex_name)) |texcoord| {
                                 try primitive.attributes.append(
                                     .{
                                         .texcoord = parseIndex(texcoord),
@@ -657,7 +657,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                         };
 
                         for (joints) |join_count| {
-                            if (attributes.Object.get(join_count)) |joint| {
+                            if (attributes.object.get(join_count)) |joint| {
                                 try primitive.attributes.append(
                                     .{
                                         .joints = parseIndex(joint),
@@ -677,7 +677,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                         };
 
                         for (weights) |weight_count| {
-                            if (attributes.Object.get(weight_count)) |weight| {
+                            if (attributes.object.get(weight_count)) |weight| {
                                 try primitive.attributes.append(
                                     .{
                                         .weights = parseIndex(weight),
@@ -695,9 +695,9 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.Object.get("accessors")) |accessors| {
-        for (accessors.Array.items) |item| {
-            const object = item.Object;
+    if (gltf.root.object.get("accessors")) |accessors| {
+        for (accessors.array.items) |item| {
+            const object = item.object;
 
             var accessor = Accessor{
                 .component_type = undefined,
@@ -707,41 +707,41 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             };
 
             if (object.get("componentType")) |component_type| {
-                accessor.component_type = @intToEnum(ComponentType, component_type.Integer);
+                accessor.component_type = @intToEnum(ComponentType, component_type.integer);
             } else {
                 panic("Accessor's componentType is missing.", .{});
             }
 
             if (object.get("count")) |count| {
-                accessor.count = @intCast(i32, count.Integer);
+                accessor.count = @intCast(i32, count.integer);
             } else {
                 panic("Accessor's count is missing.", .{});
             }
 
             if (object.get("type")) |accessor_type| {
-                if (mem.eql(u8, accessor_type.String, "SCALAR")) {
+                if (mem.eql(u8, accessor_type.string, "SCALAR")) {
                     accessor.type = .scalar;
-                } else if (mem.eql(u8, accessor_type.String, "VEC2")) {
+                } else if (mem.eql(u8, accessor_type.string, "VEC2")) {
                     accessor.type = .vec2;
-                } else if (mem.eql(u8, accessor_type.String, "VEC3")) {
+                } else if (mem.eql(u8, accessor_type.string, "VEC3")) {
                     accessor.type = .vec3;
-                } else if (mem.eql(u8, accessor_type.String, "VEC4")) {
+                } else if (mem.eql(u8, accessor_type.string, "VEC4")) {
                     accessor.type = .vec4;
-                } else if (mem.eql(u8, accessor_type.String, "MAT2")) {
+                } else if (mem.eql(u8, accessor_type.string, "MAT2")) {
                     accessor.type = .mat2x2;
-                } else if (mem.eql(u8, accessor_type.String, "MAT3")) {
+                } else if (mem.eql(u8, accessor_type.string, "MAT3")) {
                     accessor.type = .mat3x3;
-                } else if (mem.eql(u8, accessor_type.String, "MAT4")) {
+                } else if (mem.eql(u8, accessor_type.string, "MAT4")) {
                     accessor.type = .mat4x4;
                 } else {
-                    panic("Accessor's type '{s}' is invalid.", .{accessor_type.String});
+                    panic("Accessor's type '{s}' is invalid.", .{accessor_type.string});
                 }
             } else {
                 panic("Accessor's type is missing.", .{});
             }
 
             if (object.get("normalized")) |normalized| {
-                accessor.normalized = normalized.Bool;
+                accessor.normalized = normalized.bool;
             }
 
             if (object.get("bufferView")) |buffer_view| {
@@ -749,7 +749,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             }
 
             if (object.get("byteOffset")) |byte_offset| {
-                accessor.byte_offset = @intCast(usize, byte_offset.Integer);
+                accessor.byte_offset = @intCast(usize, byte_offset.integer);
             }
 
             const component_size: usize = switch (accessor.component_type) {
@@ -775,9 +775,9 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.Object.get("bufferViews")) |buffer_views| {
-        for (buffer_views.Array.items) |item| {
-            const object = item.Object;
+    if (gltf.root.object.get("bufferViews")) |buffer_views| {
+        for (buffer_views.array.items) |item| {
+            const object = item.object;
 
             var buffer_view = BufferView{
                 .buffer = undefined,
@@ -789,39 +789,39 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             }
 
             if (object.get("byteLength")) |byte_length| {
-                buffer_view.byte_length = @intCast(usize, byte_length.Integer);
+                buffer_view.byte_length = @intCast(usize, byte_length.integer);
             }
 
             if (object.get("byteOffset")) |byte_offset| {
-                buffer_view.byte_offset = @intCast(usize, byte_offset.Integer);
+                buffer_view.byte_offset = @intCast(usize, byte_offset.integer);
             }
 
             if (object.get("byteStride")) |byte_stride| {
-                buffer_view.byte_stride = @intCast(usize, byte_stride.Integer);
+                buffer_view.byte_stride = @intCast(usize, byte_stride.integer);
             }
 
             if (object.get("target")) |target| {
-                buffer_view.target = @intToEnum(Target, target.Integer);
+                buffer_view.target = @intToEnum(Target, target.integer);
             }
 
             try self.data.buffer_views.append(buffer_view);
         }
     }
 
-    if (gltf.root.Object.get("buffers")) |buffers| {
-        for (buffers.Array.items) |item| {
-            const object = item.Object;
+    if (gltf.root.object.get("buffers")) |buffers| {
+        for (buffers.array.items) |item| {
+            const object = item.object;
 
             var buffer = Buffer{
                 .byte_length = undefined,
             };
 
             if (object.get("uri")) |uri| {
-                buffer.uri = uri.String;
+                buffer.uri = uri.string;
             }
 
             if (object.get("byteLength")) |byte_length| {
-                buffer.byte_length = @intCast(usize, byte_length.Integer);
+                buffer.byte_length = @intCast(usize, byte_length.integer);
             } else {
                 panic("Buffer's byteLength is missing.", .{});
             }
@@ -830,20 +830,20 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.Object.get("scene")) |default_scene| {
+    if (gltf.root.object.get("scene")) |default_scene| {
         self.data.scene = parseIndex(default_scene);
     }
 
-    if (gltf.root.Object.get("scenes")) |scenes| {
-        for (scenes.Array.items, 0..) |item, index| {
-            const object = item.Object;
+    if (gltf.root.object.get("scenes")) |scenes| {
+        for (scenes.array.items, 0..) |item, index| {
+            const object = item.object;
 
             var scene = Scene{
                 .name = undefined,
             };
 
             if (object.get("name")) |name| {
-                scene.name = try alloc.dupe(u8, name.String);
+                scene.name = try alloc.dupe(u8, name.string);
             } else {
                 scene.name = try fmt.allocPrint(alloc, "Scene_{}", .{index});
             }
@@ -851,7 +851,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             if (object.get("nodes")) |nodes| {
                 scene.nodes = ArrayList(Index).init(alloc);
 
-                for (nodes.Array.items) |node| {
+                for (nodes.array.items) |node| {
                     try scene.nodes.?.append(parseIndex(node));
                 }
             }
@@ -860,61 +860,61 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.Object.get("materials")) |materials| {
-        for (materials.Array.items, 0..) |item, m_index| {
-            const object = item.Object;
+    if (gltf.root.object.get("materials")) |materials| {
+        for (materials.array.items, 0..) |item, m_index| {
+            const object = item.object;
 
             var material = Material{
                 .name = undefined,
             };
 
             if (object.get("name")) |name| {
-                material.name = try alloc.dupe(u8, name.String);
+                material.name = try alloc.dupe(u8, name.string);
             } else {
                 material.name = try fmt.allocPrint(alloc, "Material_{}", .{m_index});
             }
 
             if (object.get("pbrMetallicRoughness")) |pbrMetallicRoughness| {
                 var metallic_roughness: MetallicRoughness = .{};
-                if (pbrMetallicRoughness.Object.get("baseColorFactor")) |color_factor| {
-                    for (color_factor.Array.items, 0..) |factor, i| {
+                if (pbrMetallicRoughness.object.get("baseColorFactor")) |color_factor| {
+                    for (color_factor.array.items, 0..) |factor, i| {
                         metallic_roughness.base_color_factor[i] = parseFloat(f32, factor);
                     }
                 }
 
-                if (pbrMetallicRoughness.Object.get("metallicFactor")) |factor| {
+                if (pbrMetallicRoughness.object.get("metallicFactor")) |factor| {
                     metallic_roughness.metallic_factor = parseFloat(f32, factor);
                 }
 
-                if (pbrMetallicRoughness.Object.get("roughnessFactor")) |factor| {
+                if (pbrMetallicRoughness.object.get("roughnessFactor")) |factor| {
                     metallic_roughness.roughness_factor = parseFloat(f32, factor);
                 }
 
-                if (pbrMetallicRoughness.Object.get("baseColorTexture")) |texture_info| {
+                if (pbrMetallicRoughness.object.get("baseColorTexture")) |texture_info| {
                     metallic_roughness.base_color_texture = .{
                         .index = undefined,
                     };
 
-                    if (texture_info.Object.get("index")) |index| {
+                    if (texture_info.object.get("index")) |index| {
                         metallic_roughness.base_color_texture.?.index = parseIndex(index);
                     }
 
-                    if (texture_info.Object.get("texCoord")) |texcoord| {
-                        metallic_roughness.base_color_texture.?.texcoord = @intCast(i32, texcoord.Integer);
+                    if (texture_info.object.get("texCoord")) |texcoord| {
+                        metallic_roughness.base_color_texture.?.texcoord = @intCast(i32, texcoord.integer);
                     }
                 }
 
-                if (pbrMetallicRoughness.Object.get("metallicRoughnessTexture")) |texture_info| {
+                if (pbrMetallicRoughness.object.get("metallicRoughnessTexture")) |texture_info| {
                     metallic_roughness.metallic_roughness_texture = .{
                         .index = undefined,
                     };
 
-                    if (texture_info.Object.get("index")) |index| {
+                    if (texture_info.object.get("index")) |index| {
                         metallic_roughness.metallic_roughness_texture.?.index = parseIndex(index);
                     }
 
-                    if (texture_info.Object.get("texCoord")) |texcoord| {
-                        metallic_roughness.metallic_roughness_texture.?.texcoord = @intCast(i32, texcoord.Integer);
+                    if (texture_info.object.get("texCoord")) |texcoord| {
+                        metallic_roughness.metallic_roughness_texture.?.texcoord = @intCast(i32, texcoord.integer);
                     }
                 }
 
@@ -926,15 +926,15 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                     .index = undefined,
                 };
 
-                if (normal_texture.Object.get("index")) |index| {
+                if (normal_texture.object.get("index")) |index| {
                     material.normal_texture.?.index = parseIndex(index);
                 }
 
-                if (normal_texture.Object.get("texCoord")) |index| {
-                    material.normal_texture.?.texcoord = @intCast(i32, index.Integer);
+                if (normal_texture.object.get("texCoord")) |index| {
+                    material.normal_texture.?.texcoord = @intCast(i32, index.integer);
                 }
 
-                if (normal_texture.Object.get("scale")) |scale| {
+                if (normal_texture.object.get("scale")) |scale| {
                     material.normal_texture.?.scale = parseFloat(f32, scale);
                 }
             }
@@ -944,12 +944,12 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                     .index = undefined,
                 };
 
-                if (emissive_texture.Object.get("index")) |index| {
+                if (emissive_texture.object.get("index")) |index| {
                     material.emissive_texture.?.index = parseIndex(index);
                 }
 
-                if (emissive_texture.Object.get("texCoord")) |index| {
-                    material.emissive_texture.?.texcoord = @intCast(i32, index.Integer);
+                if (emissive_texture.object.get("texCoord")) |index| {
+                    material.emissive_texture.?.texcoord = @intCast(i32, index.integer);
                 }
             }
 
@@ -958,33 +958,33 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                     .index = undefined,
                 };
 
-                if (occlusion_texture.Object.get("index")) |index| {
+                if (occlusion_texture.object.get("index")) |index| {
                     material.occlusion_texture.?.index = parseIndex(index);
                 }
 
-                if (occlusion_texture.Object.get("texCoord")) |index| {
-                    material.occlusion_texture.?.texcoord = @intCast(i32, index.Integer);
+                if (occlusion_texture.object.get("texCoord")) |index| {
+                    material.occlusion_texture.?.texcoord = @intCast(i32, index.integer);
                 }
 
-                if (occlusion_texture.Object.get("strength")) |strength| {
+                if (occlusion_texture.object.get("strength")) |strength| {
                     material.occlusion_texture.?.strength = parseFloat(f32, strength);
                 }
             }
 
             if (object.get("alphaMode")) |alpha_mode| {
-                if (mem.eql(u8, alpha_mode.String, "OPAQUE")) {
+                if (mem.eql(u8, alpha_mode.string, "OPAQUE")) {
                     material.alpha_mode = .@"opaque";
                 }
-                if (mem.eql(u8, alpha_mode.String, "MASK")) {
+                if (mem.eql(u8, alpha_mode.string, "MASK")) {
                     material.alpha_mode = .mask;
                 }
-                if (mem.eql(u8, alpha_mode.String, "BLEND")) {
+                if (mem.eql(u8, alpha_mode.string, "BLEND")) {
                     material.alpha_mode = .blend;
                 }
             }
 
             if (object.get("doubleSided")) |double_sided| {
-                material.is_double_sided = double_sided.Bool;
+                material.is_double_sided = double_sided.bool;
             }
 
             if (object.get("alphaCutoff")) |alpha_cutoff| {
@@ -992,40 +992,40 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             }
 
             if (object.get("emissiveFactor")) |emissive_factor| {
-                for (emissive_factor.Array.items, 0..) |factor, i| {
+                for (emissive_factor.array.items, 0..) |factor, i| {
                     material.emissive_factor[i] = parseFloat(f32, factor);
                 }
             }
 
             if (object.get("extensions")) |extensions| {
-                if (extensions.Object.get("KHR_materials_emissive_strength")) |materials_emissive_strength| {
-                    if (materials_emissive_strength.Object.get("emissiveStrength")) |emissive_strength| {
+                if (extensions.object.get("KHR_materials_emissive_strength")) |materials_emissive_strength| {
+                    if (materials_emissive_strength.object.get("emissiveStrength")) |emissive_strength| {
                         material.emissive_strength = parseFloat(f32, emissive_strength);
                     }
                 }
 
-                if (extensions.Object.get("KHR_materials_ior")) |materials_ior| {
-                    if (materials_ior.Object.get("ior")) |ior| {
+                if (extensions.object.get("KHR_materials_ior")) |materials_ior| {
+                    if (materials_ior.object.get("ior")) |ior| {
                         material.ior = parseFloat(f32, ior);
                     }
                 }
 
-                if (extensions.Object.get("KHR_materials_transmission")) |materials_transmission| {
-                    if (materials_transmission.Object.get("transmissionFactor")) |transmission_factor| {
+                if (extensions.object.get("KHR_materials_transmission")) |materials_transmission| {
+                    if (materials_transmission.object.get("transmissionFactor")) |transmission_factor| {
                         material.transmission_factor = parseFloat(f32, transmission_factor);
                     }
 
-                    if (materials_transmission.Object.get("transmissionTexture")) |transmission_texture| {
+                    if (materials_transmission.object.get("transmissionTexture")) |transmission_texture| {
                         material.transmission_texture = .{
                             .index = undefined,
                         };
 
-                        if (transmission_texture.Object.get("index")) |index| {
+                        if (transmission_texture.object.get("index")) |index| {
                             material.transmission_texture.?.index = parseIndex(index);
                         }
 
-                        if (transmission_texture.Object.get("texCoord")) |index| {
-                            material.transmission_texture.?.texcoord = @intCast(i32, index.Integer);
+                        if (transmission_texture.object.get("texCoord")) |index| {
+                            material.transmission_texture.?.texcoord = @intCast(i32, index.integer);
                         }
                     }
                 }
@@ -1035,15 +1035,15 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.Object.get("textures")) |textures| {
-        for (textures.Array.items) |item| {
+    if (gltf.root.object.get("textures")) |textures| {
+        for (textures.array.items) |item| {
             var texture = Texture{};
 
-            if (item.Object.get("source")) |source| {
+            if (item.object.get("source")) |source| {
                 texture.source = parseIndex(source);
             }
 
-            if (item.Object.get("sampler")) |sampler| {
+            if (item.object.get("sampler")) |sampler| {
                 texture.sampler = parseIndex(sampler);
             }
 
@@ -1051,9 +1051,9 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.Object.get("animations")) |animations| {
-        for (animations.Array.items, 0..) |item, index| {
-            const object = item.Object;
+    if (gltf.root.object.get("animations")) |animations| {
+        for (animations.array.items, 0..) |item, index| {
+            const object = item.object;
 
             var animation = Animation{
                 .samplers = ArrayList(AnimationSampler).init(alloc),
@@ -1061,41 +1061,41 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                 .name = undefined,
             };
 
-            if (item.Object.get("name")) |name| {
-                animation.name = try alloc.dupe(u8, name.String);
+            if (item.object.get("name")) |name| {
+                animation.name = try alloc.dupe(u8, name.string);
             } else {
                 animation.name = try fmt.allocPrint(alloc, "Animation_{}", .{index});
             }
 
             if (object.get("samplers")) |samplers| {
-                for (samplers.Array.items) |sampler_item| {
+                for (samplers.array.items) |sampler_item| {
                     var sampler: AnimationSampler = .{
                         .input = undefined,
                         .output = undefined,
                     };
 
-                    if (sampler_item.Object.get("input")) |input| {
+                    if (sampler_item.object.get("input")) |input| {
                         sampler.input = parseIndex(input);
                     } else {
                         panic("Animation sampler's input is missing.", .{});
                     }
 
-                    if (sampler_item.Object.get("output")) |output| {
+                    if (sampler_item.object.get("output")) |output| {
                         sampler.output = parseIndex(output);
                     } else {
                         panic("Animation sampler's output is missing.", .{});
                     }
 
-                    if (sampler_item.Object.get("interpolation")) |interpolation| {
-                        if (mem.eql(u8, interpolation.String, "LINEAR")) {
+                    if (sampler_item.object.get("interpolation")) |interpolation| {
+                        if (mem.eql(u8, interpolation.string, "LINEAR")) {
                             sampler.interpolation = .linear;
                         }
 
-                        if (mem.eql(u8, interpolation.String, "STEP")) {
+                        if (mem.eql(u8, interpolation.string, "STEP")) {
                             sampler.interpolation = .step;
                         }
 
-                        if (mem.eql(u8, interpolation.String, "CUBICSPLINE")) {
+                        if (mem.eql(u8, interpolation.string, "CUBICSPLINE")) {
                             sampler.interpolation = .cubicspline;
                         }
                     }
@@ -1105,33 +1105,33 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             }
 
             if (object.get("channels")) |channels| {
-                for (channels.Array.items) |channel_item| {
+                for (channels.array.items) |channel_item| {
                     var channel: Channel = .{ .sampler = undefined, .target = .{
                         .node = undefined,
                         .property = undefined,
                     } };
 
-                    if (channel_item.Object.get("sampler")) |sampler_index| {
+                    if (channel_item.object.get("sampler")) |sampler_index| {
                         channel.sampler = parseIndex(sampler_index);
                     } else {
                         panic("Animation channel's sampler is missing.", .{});
                     }
 
-                    if (channel_item.Object.get("target")) |target_item| {
-                        if (target_item.Object.get("node")) |node_index| {
+                    if (channel_item.object.get("target")) |target_item| {
+                        if (target_item.object.get("node")) |node_index| {
                             channel.target.node = parseIndex(node_index);
                         } else {
                             panic("Animation target's node is missing.", .{});
                         }
 
-                        if (target_item.Object.get("path")) |path| {
-                            if (mem.eql(u8, path.String, "translation")) {
+                        if (target_item.object.get("path")) |path| {
+                            if (mem.eql(u8, path.string, "translation")) {
                                 channel.target.property = .translation;
-                            } else if (mem.eql(u8, path.String, "rotation")) {
+                            } else if (mem.eql(u8, path.string, "rotation")) {
                                 channel.target.property = .rotation;
-                            } else if (mem.eql(u8, path.String, "scale")) {
+                            } else if (mem.eql(u8, path.string, "scale")) {
                                 channel.target.property = .scale;
-                            } else if (mem.eql(u8, path.String, "weights")) {
+                            } else if (mem.eql(u8, path.string, "weights")) {
                                 channel.target.property = .weights;
                             } else {
                                 panic("Animation path/property is invalid.", .{});
@@ -1151,42 +1151,42 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.Object.get("samplers")) |samplers| {
-        for (samplers.Array.items) |item| {
-            const object = item.Object;
+    if (gltf.root.object.get("samplers")) |samplers| {
+        for (samplers.array.items) |item| {
+            const object = item.object;
             var sampler = TextureSampler{};
 
             if (object.get("magFilter")) |mag_filter| {
-                sampler.mag_filter = @intToEnum(MagFilter, mag_filter.Integer);
+                sampler.mag_filter = @intToEnum(MagFilter, mag_filter.integer);
             }
 
             if (object.get("minFilter")) |min_filter| {
-                sampler.min_filter = @intToEnum(MinFilter, min_filter.Integer);
+                sampler.min_filter = @intToEnum(MinFilter, min_filter.integer);
             }
 
             if (object.get("wrapS")) |wrap_s| {
-                sampler.wrap_s = @intToEnum(WrapMode, wrap_s.Integer);
+                sampler.wrap_s = @intToEnum(WrapMode, wrap_s.integer);
             }
 
             if (object.get("wrapt")) |wrap_t| {
-                sampler.wrap_t = @intToEnum(WrapMode, wrap_t.Integer);
+                sampler.wrap_t = @intToEnum(WrapMode, wrap_t.integer);
             }
 
             try self.data.samplers.append(sampler);
         }
     }
 
-    if (gltf.root.Object.get("images")) |images| {
-        for (images.Array.items) |item| {
-            const object = item.Object;
+    if (gltf.root.object.get("images")) |images| {
+        for (images.array.items) |item| {
+            const object = item.object;
             var image = Image{};
 
             if (object.get("uri")) |uri| {
-                image.uri = try alloc.dupe(u8, uri.String);
+                image.uri = try alloc.dupe(u8, uri.string);
             }
 
             if (object.get("mimeType")) |mime_type| {
-                image.mime_type = try alloc.dupe(u8, mime_type.String);
+                image.mime_type = try alloc.dupe(u8, mime_type.string);
             }
 
             if (object.get("bufferView")) |buffer_view| {
@@ -1197,11 +1197,11 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.Object.get("extensions")) |extensions| {
-        if (extensions.Object.get("KHR_lights_punctual")) |lights_punctual| {
-            if (lights_punctual.Object.get("lights")) |lights| {
-                for (lights.Array.items) |item| {
-                    const object: json.ObjectMap = item.Object;
+    if (gltf.root.object.get("extensions")) |extensions| {
+        if (extensions.object.get("KHR_lights_punctual")) |lights_punctual| {
+            if (lights_punctual.object.get("lights")) |lights| {
+                for (lights.array.items) |item| {
+                    const object: json.ObjectMap = item.object;
 
                     var light = Light{
                         .name = null,
@@ -1211,11 +1211,11 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                     };
 
                     if (object.get("name")) |name| {
-                        light.name = try alloc.dupe(u8, name.String);
+                        light.name = try alloc.dupe(u8, name.string);
                     }
 
                     if (object.get("color")) |color| {
-                        for (color.Array.items, 0..) |component, i| {
+                        for (color.array.items, 0..) |component, i| {
                             light.color[i] = parseFloat(f32, component);
                         }
                     }
@@ -1225,7 +1225,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                     }
 
                     if (object.get("type")) |@"type"| {
-                        if (std.meta.stringToEnum(LightType, @"type".String)) |light_type| {
+                        if (std.meta.stringToEnum(LightType, @"type".string)) |light_type| {
                             light.type = light_type;
                         } else panic("Light's type invalid", .{});
                     }
@@ -1237,11 +1237,11 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                     if (object.get("spot")) |spot| {
                         light.spot = .{};
 
-                        if (spot.Object.get("innerConeAngle")) |inner_cone_angle| {
+                        if (spot.object.get("innerConeAngle")) |inner_cone_angle| {
                             light.spot.?.inner_cone_angle = parseFloat(f32, inner_cone_angle);
                         }
 
-                        if (spot.Object.get("outerConeAngle")) |outer_cone_angle| {
+                        if (spot.object.get("outerConeAngle")) |outer_cone_angle| {
                             light.spot.?.outer_cone_angle = parseFloat(f32, outer_cone_angle);
                         }
                     }
@@ -1267,7 +1267,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
 // this function casts Integer to 'usize'.
 fn parseIndex(component: json.Value) usize {
     return switch (component) {
-        .Integer => |val| @intCast(usize, val),
+       .integer => |val| @intCast(usize, val),
         else => panic(
             "The json component '{any}' is not valid number.",
             .{component},
@@ -1287,8 +1287,8 @@ fn parseFloat(comptime T: type, component: json.Value) T {
     }
 
     return switch (component) {
-        .Float => |val| @floatCast(T, val),
-        .Integer => |val| @intToFloat(T, val),
+       .float => |val| @floatCast(T, val),
+       .integer => |val| @intToFloat(T, val),
         else => panic(
             "The json component '{any}' is not a number.",
             .{component},
