@@ -374,13 +374,12 @@ fn parseGlb(self: *Self, glb_buffer: []const u8) !void {
 fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     const alloc = self.arena.allocator();
 
-    var parser = json.Parser.init(alloc, .alloc_if_needed);
-    defer parser.deinit();
+    var gltf_parsed = try json.parseFromSlice(json.Value, alloc, gltf_json, .{});
+    defer gltf_parsed.deinit();
 
-    var gltf = try parser.parse(gltf_json);
-    defer gltf.deinit();
+    const gltf: *json.Value = &gltf_parsed.value;
 
-    if (gltf.root.object.get("asset")) |json_value| {
+    if (gltf.object.get("asset")) |json_value| {
         var asset = &self.data.asset;
 
         if (json_value.object.get("version")) |version| {
@@ -398,7 +397,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("nodes")) |nodes| {
+    if (gltf.object.get("nodes")) |nodes| {
         for (nodes.array.items, 0..) |item, index| {
             const object = item.object;
 
@@ -474,7 +473,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("cameras")) |cameras| {
+    if (gltf.object.get("cameras")) |cameras| {
         for (cameras.array.items, 0..) |item, index| {
             const object = item.object;
 
@@ -535,7 +534,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("skins")) |skins| {
+    if (gltf.object.get("skins")) |skins| {
         for (skins.array.items, 0..) |item, index| {
             const object = item.object;
 
@@ -568,7 +567,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("meshes")) |meshes| {
+    if (gltf.object.get("meshes")) |meshes| {
         for (meshes.array.items, 0..) |item, index| {
             const object = item.object;
 
@@ -695,7 +694,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("accessors")) |accessors| {
+    if (gltf.object.get("accessors")) |accessors| {
         for (accessors.array.items) |item| {
             const object = item.object;
 
@@ -775,7 +774,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("bufferViews")) |buffer_views| {
+    if (gltf.object.get("bufferViews")) |buffer_views| {
         for (buffer_views.array.items) |item| {
             const object = item.object;
 
@@ -808,7 +807,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("buffers")) |buffers| {
+    if (gltf.object.get("buffers")) |buffers| {
         for (buffers.array.items) |item| {
             const object = item.object;
 
@@ -830,11 +829,11 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("scene")) |default_scene| {
+    if (gltf.object.get("scene")) |default_scene| {
         self.data.scene = parseIndex(default_scene);
     }
 
-    if (gltf.root.object.get("scenes")) |scenes| {
+    if (gltf.object.get("scenes")) |scenes| {
         for (scenes.array.items, 0..) |item, index| {
             const object = item.object;
 
@@ -860,7 +859,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("materials")) |materials| {
+    if (gltf.object.get("materials")) |materials| {
         for (materials.array.items, 0..) |item, m_index| {
             const object = item.object;
 
@@ -1035,7 +1034,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("textures")) |textures| {
+    if (gltf.object.get("textures")) |textures| {
         for (textures.array.items) |item| {
             var texture = Texture{};
 
@@ -1051,7 +1050,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("animations")) |animations| {
+    if (gltf.object.get("animations")) |animations| {
         for (animations.array.items, 0..) |item, index| {
             const object = item.object;
 
@@ -1151,7 +1150,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("samplers")) |samplers| {
+    if (gltf.object.get("samplers")) |samplers| {
         for (samplers.array.items) |item| {
             const object = item.object;
             var sampler = TextureSampler{};
@@ -1176,7 +1175,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("images")) |images| {
+    if (gltf.object.get("images")) |images| {
         for (images.array.items) |item| {
             const object = item.object;
             var image = Image{};
@@ -1197,7 +1196,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("extensions")) |extensions| {
+    if (gltf.object.get("extensions")) |extensions| {
         if (extensions.object.get("KHR_lights_punctual")) |lights_punctual| {
             if (lights_punctual.object.get("lights")) |lights| {
                 for (lights.array.items) |item| {
