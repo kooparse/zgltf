@@ -228,7 +228,7 @@ pub fn getDataFromBufferView(
         },
     };
 
-    const data = @ptrCast([*]const T, @alignCast(@alignOf(T), binary.ptr));
+    const data = @as([*]const T, @ptrCast(@alignCast(binary.ptr)));
 
     var current_count: usize = 0;
     while (current_count < total_count) : (current_count += 1) {
@@ -278,7 +278,7 @@ pub fn getGlobalTransform(data: *const Data, node: Node) Mat4 {
 
 fn isGlb(glb_buffer: []const u8) bool {
     const GLB_MAGIC_NUMBER: u32 = 0x46546C67; // 'gltf' in ASCII.
-    const fields = @ptrCast([*]const u32, @alignCast(4, glb_buffer));
+    const fields = @as([*]const u32, @ptrCast(@alignCast(glb_buffer)));
 
     return fields[0] == GLB_MAGIC_NUMBER;
 }
@@ -292,7 +292,7 @@ fn parseGlb(self: *Self, glb_buffer: []const u8) !void {
 
     // 'cause most of the interesting fields are u32s in the buffer, it's
     // easier to read them with a pointer cast.
-    const fields = @ptrCast([*]const u32, @alignCast(4, glb_buffer));
+    const fields = @as([*]const u32, @ptrCast(@alignCast(glb_buffer)));
 
     // The 12-byte header consists of three 4-byte entries:
     //  u32 magic
@@ -374,13 +374,12 @@ fn parseGlb(self: *Self, glb_buffer: []const u8) !void {
 fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     const alloc = self.arena.allocator();
 
-    var parser = json.Parser.init(alloc, .alloc_if_needed);
-    defer parser.deinit();
+    var gltf_parsed = try json.parseFromSlice(json.Value, alloc, gltf_json, .{});
+    defer gltf_parsed.deinit();
 
-    var gltf = try parser.parse(gltf_json);
-    defer gltf.deinit();
+    const gltf: *json.Value = &gltf_parsed.value;
 
-    if (gltf.root.object.get("asset")) |json_value| {
+    if (gltf.object.get("asset")) |json_value| {
         var asset = &self.data.asset;
 
         if (json_value.object.get("version")) |version| {
@@ -398,7 +397,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("nodes")) |nodes| {
+    if (gltf.object.get("nodes")) |nodes| {
         for (nodes.array.items, 0..) |item, index| {
             const object = item.object;
 
@@ -465,7 +464,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             if (object.get("extensions")) |extensions| {
                 if (extensions.object.get("KHR_lights_punctual")) |lights_punctual| {
                     if (lights_punctual.object.get("light")) |light| {
-                        node.light = @intCast(Index, light.integer);
+                        node.light = @as(Index, @intCast(light.integer));
                     }
                 }
             }
@@ -474,7 +473,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("cameras")) |cameras| {
+    if (gltf.object.get("cameras")) |cameras| {
         for (cameras.array.items, 0..) |item, index| {
             const object = item.object;
 
@@ -535,7 +534,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("skins")) |skins| {
+    if (gltf.object.get("skins")) |skins| {
         for (skins.array.items, 0..) |item, index| {
             const object = item.object;
 
@@ -568,7 +567,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("meshes")) |meshes| {
+    if (gltf.object.get("meshes")) |meshes| {
         for (meshes.array.items, 0..) |item, index| {
             const object = item.object;
 
@@ -590,7 +589,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                     };
 
                     if (prim_item.object.get("mode")) |mode| {
-                        primitive.mode = @intToEnum(Mode, mode.integer);
+                        primitive.mode = @as(Mode, @enumFromInt(mode.integer));
                     }
 
                     if (prim_item.object.get("indices")) |indices| {
@@ -695,7 +694,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("accessors")) |accessors| {
+    if (gltf.object.get("accessors")) |accessors| {
         for (accessors.array.items) |item| {
             const object = item.object;
 
@@ -707,13 +706,13 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             };
 
             if (object.get("componentType")) |component_type| {
-                accessor.component_type = @intToEnum(ComponentType, component_type.integer);
+                accessor.component_type = @as(ComponentType, @enumFromInt(component_type.integer));
             } else {
                 panic("Accessor's componentType is missing.", .{});
             }
 
             if (object.get("count")) |count| {
-                accessor.count = @intCast(i32, count.integer);
+                accessor.count = @as(i32, @intCast(count.integer));
             } else {
                 panic("Accessor's count is missing.", .{});
             }
@@ -749,7 +748,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             }
 
             if (object.get("byteOffset")) |byte_offset| {
-                accessor.byte_offset = @intCast(usize, byte_offset.integer);
+                accessor.byte_offset = @as(usize, @intCast(byte_offset.integer));
             }
 
             const component_size: usize = switch (accessor.component_type) {
@@ -775,7 +774,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("bufferViews")) |buffer_views| {
+    if (gltf.object.get("bufferViews")) |buffer_views| {
         for (buffer_views.array.items) |item| {
             const object = item.object;
 
@@ -789,26 +788,26 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             }
 
             if (object.get("byteLength")) |byte_length| {
-                buffer_view.byte_length = @intCast(usize, byte_length.integer);
+                buffer_view.byte_length = @as(usize, @intCast(byte_length.integer));
             }
 
             if (object.get("byteOffset")) |byte_offset| {
-                buffer_view.byte_offset = @intCast(usize, byte_offset.integer);
+                buffer_view.byte_offset = @as(usize, @intCast(byte_offset.integer));
             }
 
             if (object.get("byteStride")) |byte_stride| {
-                buffer_view.byte_stride = @intCast(usize, byte_stride.integer);
+                buffer_view.byte_stride = @as(usize, @intCast(byte_stride.integer));
             }
 
             if (object.get("target")) |target| {
-                buffer_view.target = @intToEnum(Target, target.integer);
+                buffer_view.target = @as(Target, @enumFromInt(target.integer));
             }
 
             try self.data.buffer_views.append(buffer_view);
         }
     }
 
-    if (gltf.root.object.get("buffers")) |buffers| {
+    if (gltf.object.get("buffers")) |buffers| {
         for (buffers.array.items) |item| {
             const object = item.object;
 
@@ -821,7 +820,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             }
 
             if (object.get("byteLength")) |byte_length| {
-                buffer.byte_length = @intCast(usize, byte_length.integer);
+                buffer.byte_length = @as(usize, @intCast(byte_length.integer));
             } else {
                 panic("Buffer's byteLength is missing.", .{});
             }
@@ -830,11 +829,11 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("scene")) |default_scene| {
+    if (gltf.object.get("scene")) |default_scene| {
         self.data.scene = parseIndex(default_scene);
     }
 
-    if (gltf.root.object.get("scenes")) |scenes| {
+    if (gltf.object.get("scenes")) |scenes| {
         for (scenes.array.items, 0..) |item, index| {
             const object = item.object;
 
@@ -860,7 +859,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("materials")) |materials| {
+    if (gltf.object.get("materials")) |materials| {
         for (materials.array.items, 0..) |item, m_index| {
             const object = item.object;
 
@@ -900,7 +899,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                     }
 
                     if (texture_info.object.get("texCoord")) |texcoord| {
-                        metallic_roughness.base_color_texture.?.texcoord = @intCast(i32, texcoord.integer);
+                        metallic_roughness.base_color_texture.?.texcoord = @as(i32, @intCast(texcoord.integer));
                     }
                 }
 
@@ -914,7 +913,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                     }
 
                     if (texture_info.object.get("texCoord")) |texcoord| {
-                        metallic_roughness.metallic_roughness_texture.?.texcoord = @intCast(i32, texcoord.integer);
+                        metallic_roughness.metallic_roughness_texture.?.texcoord = @as(i32, @intCast(texcoord.integer));
                     }
                 }
 
@@ -931,7 +930,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                 }
 
                 if (normal_texture.object.get("texCoord")) |index| {
-                    material.normal_texture.?.texcoord = @intCast(i32, index.integer);
+                    material.normal_texture.?.texcoord = @as(i32, @intCast(index.integer));
                 }
 
                 if (normal_texture.object.get("scale")) |scale| {
@@ -949,7 +948,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                 }
 
                 if (emissive_texture.object.get("texCoord")) |index| {
-                    material.emissive_texture.?.texcoord = @intCast(i32, index.integer);
+                    material.emissive_texture.?.texcoord = @as(i32, @intCast(index.integer));
                 }
             }
 
@@ -963,7 +962,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                 }
 
                 if (occlusion_texture.object.get("texCoord")) |index| {
-                    material.occlusion_texture.?.texcoord = @intCast(i32, index.integer);
+                    material.occlusion_texture.?.texcoord = @as(i32, @intCast(index.integer));
                 }
 
                 if (occlusion_texture.object.get("strength")) |strength| {
@@ -1025,7 +1024,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                         }
 
                         if (transmission_texture.object.get("texCoord")) |index| {
-                            material.transmission_texture.?.texcoord = @intCast(i32, index.integer);
+                            material.transmission_texture.?.texcoord = @as(i32, @intCast(index.integer));
                         }
                     }
                 }
@@ -1035,7 +1034,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("textures")) |textures| {
+    if (gltf.object.get("textures")) |textures| {
         for (textures.array.items) |item| {
             var texture = Texture{};
 
@@ -1051,7 +1050,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("animations")) |animations| {
+    if (gltf.object.get("animations")) |animations| {
         for (animations.array.items, 0..) |item, index| {
             const object = item.object;
 
@@ -1151,32 +1150,32 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("samplers")) |samplers| {
+    if (gltf.object.get("samplers")) |samplers| {
         for (samplers.array.items) |item| {
             const object = item.object;
             var sampler = TextureSampler{};
 
             if (object.get("magFilter")) |mag_filter| {
-                sampler.mag_filter = @intToEnum(MagFilter, mag_filter.integer);
+                sampler.mag_filter = @as(MagFilter, @enumFromInt(mag_filter.integer));
             }
 
             if (object.get("minFilter")) |min_filter| {
-                sampler.min_filter = @intToEnum(MinFilter, min_filter.integer);
+                sampler.min_filter = @as(MinFilter, @enumFromInt(min_filter.integer));
             }
 
             if (object.get("wrapS")) |wrap_s| {
-                sampler.wrap_s = @intToEnum(WrapMode, wrap_s.integer);
+                sampler.wrap_s = @as(WrapMode, @enumFromInt(wrap_s.integer));
             }
 
             if (object.get("wrapt")) |wrap_t| {
-                sampler.wrap_t = @intToEnum(WrapMode, wrap_t.integer);
+                sampler.wrap_t = @as(WrapMode, @enumFromInt(wrap_t.integer));
             }
 
             try self.data.samplers.append(sampler);
         }
     }
 
-    if (gltf.root.object.get("images")) |images| {
+    if (gltf.object.get("images")) |images| {
         for (images.array.items) |item| {
             const object = item.object;
             var image = Image{};
@@ -1197,7 +1196,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         }
     }
 
-    if (gltf.root.object.get("extensions")) |extensions| {
+    if (gltf.object.get("extensions")) |extensions| {
         if (extensions.object.get("KHR_lights_punctual")) |lights_punctual| {
             if (lights_punctual.object.get("lights")) |lights| {
                 for (lights.array.items) |item| {
@@ -1267,7 +1266,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
 // this function casts Integer to 'usize'.
 fn parseIndex(component: json.Value) usize {
     return switch (component) {
-        .integer => |val| @intCast(usize, val),
+        .integer => |val| @as(usize, @intCast(val)),
         else => panic(
             "The json component '{any}' is not valid number.",
             .{component},
@@ -1287,8 +1286,8 @@ fn parseFloat(comptime T: type, component: json.Value) T {
     }
 
     return switch (component) {
-        .float => |val| @floatCast(T, val),
-        .integer => |val| @intToFloat(T, val),
+        .float => |val| @as(T, @floatCast(val)),
+        .integer => |val| @as(T, @floatFromInt(val)),
         else => panic(
             "The json component '{any}' is not a number.",
             .{component},
