@@ -1255,7 +1255,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     for (self.data.scenes.items) |scene| {
         if (scene.nodes) |nodes| {
             for (nodes.items) |node_index| {
-                var node = &self.data.nodes.items[node_index];
+                const node = &self.data.nodes.items[node_index];
                 fillParents(&self.data, node, node_index);
             }
         }
