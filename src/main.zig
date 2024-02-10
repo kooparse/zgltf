@@ -75,7 +75,7 @@ pub const Data = struct {
 arena: *ArenaAllocator,
 data: Data,
 
-glb_binary: ?[]const u8 = null,
+glb_binary: ?[]const align(4) u8 = null,
 
 pub fn init(allocator: Allocator) Self {
     var arena = allocator.create(ArenaAllocator) catch {
@@ -108,7 +108,7 @@ pub fn init(allocator: Allocator) Self {
 }
 
 /// Fill data by parsing a glTF file's buffer.
-pub fn parse(self: *Self, file_buffer: []const u8) !void {
+pub fn parse(self: *Self, file_buffer: []align(4) const u8) !void {
     if (isGlb(file_buffer)) {
         try self.parseGlb(file_buffer);
     } else {
@@ -276,14 +276,14 @@ pub fn getGlobalTransform(data: *const Data, node: Node) Mat4 {
     return node_transform;
 }
 
-fn isGlb(glb_buffer: []const u8) bool {
+fn isGlb(glb_buffer: []align(4) const u8) bool {
     const GLB_MAGIC_NUMBER: u32 = 0x46546C67; // 'gltf' in ASCII.
-    const fields = @as([*]const u32, @ptrCast(@alignCast(glb_buffer)));
+    const fields = @as([*]const u32, @ptrCast(glb_buffer));
 
     return fields[0] == GLB_MAGIC_NUMBER;
 }
 
-fn parseGlb(self: *Self, glb_buffer: []const u8) !void {
+fn parseGlb(self: *Self, glb_buffer: []align(4) const u8) !void {
     const GLB_CHUNK_TYPE_JSON: u32 = 0x4E4F534A; // 'JSON' in ASCII.
     const GLB_CHUNK_TYPE_BIN: u32 = 0x004E4942; // 'BIN' in ASCII.
 
@@ -292,7 +292,7 @@ fn parseGlb(self: *Self, glb_buffer: []const u8) !void {
 
     // 'cause most of the interesting fields are u32s in the buffer, it's
     // easier to read them with a pointer cast.
-    const fields = @as([*]const u32, @ptrCast(@alignCast(glb_buffer)));
+    const fields = @as([*]const u32, @ptrCast(glb_buffer));
 
     // The 12-byte header consists of three 4-byte entries:
     //  u32 magic
@@ -346,7 +346,9 @@ fn parseGlb(self: *Self, glb_buffer: []const u8) !void {
 
         assert(end == total_length);
 
-        const binary = glb_buffer[start..end];
+        std.debug.assert(start % 4 == 0);
+        std.debug.assert(end % 4 == 0);
+        const binary: []align(4) const u8 = @alignCast(glb_buffer[start..end]);
 
         if (fields[fields_index + 1] != GLB_CHUNK_TYPE_BIN) {
             panic("Second GLB chunk must be binary data.", .{});
