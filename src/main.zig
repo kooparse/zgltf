@@ -75,7 +75,7 @@ pub const Data = struct {
 arena: *ArenaAllocator,
 data: Data,
 
-glb_binary: ?[]const align(4) u8 = null,
+glb_binary: ?[]align(4) const u8 = null,
 
 pub fn init(allocator: Allocator) Self {
     var arena = allocator.create(ArenaAllocator) catch {
