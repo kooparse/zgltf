@@ -1310,11 +1310,7 @@ test "gltf.parseGlb" {
     const expectEqualSlices = std.testing.expectEqualSlices;
 
     // This is the '.glb' file.
-    const glb_buf = try std.fs.cwd().readFileAlloc(
-        allocator,
-        "test-samples/box_binary/Box.glb",
-        512_000,
-    );
+    const glb_buf = try std.fs.cwd().readFileAllocOptions(allocator, "test-samples/box_binary/Box.glb", 512_000, null, 4, null);
     defer allocator.free(glb_buf);
 
     var gltf = Self.init(allocator);
@@ -1358,10 +1354,13 @@ test "gltf.parseGlbTextured" {
     const expectEqualSlices = std.testing.expectEqualSlices;
 
     // This is the '.glb' file.
-    const glb_buf = try std.fs.cwd().readFileAlloc(
+    const glb_buf = try std.fs.cwd().readFileAllocOptions(
         allocator,
         "test-samples/box_binary_textured/BoxTextured.glb",
         512_000,
+        null,
+        4,
+        null
     );
     defer allocator.free(glb_buf);
 
@@ -1388,10 +1387,13 @@ test "gltf.parse" {
 
     // This is the '.gltf' file, a json specifying what information is in the
     // model and how to retrieve it inside binary file(s).
-    const buf = try std.fs.cwd().readFileAlloc(
+    const buf = try std.fs.cwd().readFileAllocOptions(
         allocator,
         "test-samples/rigged_simple/RiggedSimple.gltf",
         512_000,
+        null,
+        4,
+        null
     );
     defer allocator.free(buf);
 
@@ -1425,10 +1427,13 @@ test "gltf.parse (cameras)" {
     const allocator = std.testing.allocator;
     const expectEqual = std.testing.expectEqual;
 
-    const buf = try std.fs.cwd().readFileAlloc(
+    const buf = try std.fs.cwd().readFileAllocOptions(
         allocator,
         "test-samples/cameras/Cameras.gltf",
         512_000,
+        null,
+        4,
+        null
     );
     defer allocator.free(buf);
 
@@ -1461,10 +1466,13 @@ test "gltf.getDataFromBufferView" {
     const allocator = std.testing.allocator;
     const expectEqualSlices = std.testing.expectEqualSlices;
 
-    const buf = try std.fs.cwd().readFileAlloc(
+    const buf = try std.fs.cwd().readFileAllocOptions(
         allocator,
         "test-samples/box/Box.gltf",
         512_000,
+        null,
+        4,
+        null
     );
     defer allocator.free(buf);
 
@@ -1519,10 +1527,13 @@ test "gltf.parse (lights)" {
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
 
-    const buf = try std.fs.cwd().readFileAlloc(
+    const buf = try std.fs.cwd().readFileAllocOptions(
         allocator,
         "test-samples/khr_lights_punctual/Lights.gltf",
         512_000,
+        null,
+        4,
+        null
     );
     defer allocator.free(buf);
 
