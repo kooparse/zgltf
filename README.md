@@ -19,10 +19,13 @@ const allocator = std.heap.page_allocator;
 const print = std.debug.print;
 
 pub fn main() void {
-    const buffer = try std.fs.cwd().readFileAlloc(
+    const buffer = try std.fs.cwd().readFileAllocOptions(
         allocator,
         "test-samples/rigged_simple/RiggedSimple.gltf",
         512_000,
+        null,
+        4,
+        null
     );
     defer allocator.free(buf);
 
@@ -56,10 +59,13 @@ Also you could easily load data from an `Accessor` with `getDataFromBufferView`:
 const gltf = Gltf.init(allocator);
 try gltf.parse(my_gltf_buf);
 
-const bin = try std.fs.cwd().readFileAlloc(
+const bin = try std.fs.cwd().readFileAllocOptions(
     allocator,
     "test-samples/rigged_simple/RiggedSimple0.bin",
     5_000_000,
+    null,
+    4,
+    null
 );
 defer allocator.free(buf);
 
