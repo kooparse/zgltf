@@ -166,12 +166,24 @@ pub fn AccessorIterator(comptime T: type) type {
 
         current: usize,
 
+        /// Returns the next element of the accessor, or null if iteration is done.
         pub fn next(self: *@This()) ?[]const T {
             if (self.current >= self.total_count) return null;
 
             const slice = (self.data + self.offset + self.current * self.stride)[0..self.datum_count];
             self.current += 1;
             return slice;
+        }
+
+        /// Returns the next element of the accessor, or null if iteration is done. Does not change self.current.
+        pub fn peek(self: *const @This()) ?[]const T {
+            var copy = self.*;
+            return copy.next();
+        }
+
+        /// Resets the iterator to the first element
+        pub fn reset(self: *@This()) void {
+            self.current = 0;
         }
     };
 }
