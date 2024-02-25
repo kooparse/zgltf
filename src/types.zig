@@ -96,7 +96,7 @@ pub const Accessor = struct {
     pub fn iterator(
         accessor: Accessor,
         comptime T: type,
-        gltf: Gltf,
+        gltf: *const Gltf,
         binary: []align(4) const u8,
     ) AccessorIterator(T) {
         if (switch (accessor.component_type) {
