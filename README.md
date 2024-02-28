@@ -88,6 +88,38 @@ for (mesh.primitives.items) |primitive| {
 
 ```
 
+Also, there is an `iterator` method that helps you pull data from accessors:
+
+```zig
+// ...
+for (primitive.attributes.items) |attribute| {
+    switch (attribute) {
+        .position => |idx| {
+            const accessor = gltf.data.accessors.items[idx];
+            var it = accessor.iterator(f32, &gltf, gltf.glb_binary.?);
+            while (it.next()) |v| {
+                try vertices.append(.{
+                    .pos = .{ v[0], v[1], v[2] },
+                    .normal = .{ 1, 0, 0 },
+                    .color = .{ 1, 1, 1, 1 },
+                    .uv_x = 0,
+                    .uv_y = 0,
+                });
+            }
+        },
+        .normal => |idx| {
+            const accessor = gltf.data.accessors.items[idx];
+            var it = accessor.iterator(f32, &gltf, gltf.glb_binary.?);
+            var i: u32 = 0;
+            while (it.next()) |n| : (i += 1) {
+                vertices.items[initial_vertex + i].normal = .{ n[0], n[1], n[2] };
+            }
+        },
+        else => {},
+    }
+}
+```
+
 ## Install
 
 Note: **Zig 0.11.x is required.**
