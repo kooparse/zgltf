@@ -1,6 +1,8 @@
 const std = @import("std");
+const Gltf = @import("main.zig");
 const pi = std.math.pi;
 const ArrayList = std.ArrayList;
+const panic = std.debug.panic;
 
 /// Index of element in data arrays.
 pub const Index = usize;
@@ -90,7 +92,101 @@ pub const Accessor = struct {
     count: i32,
     /// Specifies whether integer data values are normalized before usage.
     normalized: bool = false,
+
+    pub fn iterator(
+        accessor: Accessor,
+        comptime T: type,
+        gltf: *const Gltf,
+        binary: []align(4) const u8,
+    ) AccessorIterator(T) {
+        if (switch (accessor.component_type) {
+            .byte => T != i8,
+            .unsigned_byte => T != u8,
+            .short => T != i16,
+            .unsigned_short => T != u16,
+            .unsigned_integer => T != u32,
+            .float => T != f32,
+        }) {
+            panic(
+                "Mismatch between gltf component '{}' and given type '{}'.",
+                .{ accessor.component_type, T },
+            );
+        }
+
+        if (accessor.buffer_view == null) {
+            panic("Accessors without buffer_view are not supported yet.", .{});
+        }
+
+        const buffer_view = gltf.data.buffer_views.items[accessor.buffer_view.?];
+
+        const comp_size = @sizeOf(T);
+        const offset = (accessor.byte_offset + buffer_view.byte_offset) / comp_size;
+
+        const stride = blk: {
+            if (buffer_view.byte_stride) |byte_stride| {
+                break :blk byte_stride / comp_size;
+            } else {
+                break :blk accessor.stride / comp_size;
+            }
+        };
+
+        const total_count: usize = @intCast(accessor.count);
+        const datum_count: usize = switch (accessor.type) {
+            .scalar => 1,
+            .vec2 => 2,
+            .vec3 => 3,
+            .vec4 => 4,
+            .mat4x4 => 16,
+            else => {
+                panic("Accessor type '{}' not implemented.", .{accessor.type});
+            },
+        };
+
+        const data: [*]const T = @ptrCast(@alignCast(binary.ptr));
+
+        return .{
+            .offset = offset,
+            .stride = stride,
+            .total_count = total_count,
+            .datum_count = datum_count,
+            .data = data,
+            .current = 0,
+        };
+    }
 };
+
+/// Iterator over accessor elements
+pub fn AccessorIterator(comptime T: type) type {
+    return struct {
+        offset: usize,
+        stride: usize,
+        total_count: usize,
+        datum_count: usize,
+        data: [*]const T,
+
+        current: usize,
+
+        /// Returns the next element of the accessor, or null if iteration is done.
+        pub fn next(self: *@This()) ?[]const T {
+            if (self.current >= self.total_count) return null;
+
+            const slice = (self.data + self.offset + self.current * self.stride)[0..self.datum_count];
+            self.current += 1;
+            return slice;
+        }
+
+        /// Returns the next element of the accessor, or null if iteration is done. Does not change self.current.
+        pub fn peek(self: *const @This()) ?[]const T {
+            var copy = self.*;
+            return copy.next();
+        }
+
+        /// Resets the iterator to the first element
+        pub fn reset(self: *@This()) void {
+            self.current = 0;
+        }
+    };
+}
 
 /// The root nodes of a scene.
 pub const Scene = struct {
