@@ -34,6 +34,7 @@ pub const Camera = types.Camera;
 pub const Animation = types.Animation;
 pub const Texture = types.Texture;
 pub const Accessor = types.Accessor;
+pub const AccessorType = types.AccessorType;
 pub const AccessorIterator = types.AccessorIterator;
 pub const BufferView = types.BufferView;
 pub const Buffer = types.Buffer;
