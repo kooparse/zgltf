@@ -536,12 +536,12 @@ pub const Camera = struct {
     /// perspective projection matrix.
     pub const Perspective = struct {
         /// The aspect ratio of the field of view.
-        aspect_ratio: f32,
+        aspect_ratio: ?f32,
         /// The vertical field of view in radians.
         /// This value should be less than π.
         yfov: f32,
         /// The distance to the far clipping plane.
-        zfar: f32,
+        zfar: ?f32,
         /// The distance to the near clipping plane.
         znear: f32,
     };
