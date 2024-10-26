@@ -499,12 +499,15 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
 
                         camera.type = .{
                             .perspective = .{
-                                .aspect_ratio = parseFloat(
+                                .aspect_ratio = if (value.get("aspectRatio")) |aspect_ratio| parseFloat(
                                     f32,
-                                    value.get("aspectRatio").?,
-                                ),
+                                    aspect_ratio,
+                                ) else null,
                                 .yfov = parseFloat(f32, value.get("yfov").?),
-                                .zfar = parseFloat(f32, value.get("zfar").?),
+                                .zfar = if (value.get("zfar")) |zfar| parseFloat(
+                                    f32,
+                                    zfar,
+                                ) else null,
                                 .znear = parseFloat(f32, value.get("znear").?),
                             },
                         };
