@@ -1285,7 +1285,7 @@ fn parseIndex(component: json.Value) usize {
 // floating numbers.
 fn parseFloat(comptime T: type, component: json.Value) T {
     const type_info = @typeInfo(T);
-    if (type_info != .float) {
+    if (type_info != .Float) {
         panic(
             "Given type '{any}' is not a floating number.",
             .{type_info},
