@@ -306,6 +306,9 @@ pub const Material = struct {
     /// The color that white light turns into due to absorption.
     /// Note: from khr_materials_volume extension.
     attenuation_color: [3]f32 = [_]f32{ 1, 1, 1 },
+    /// The strength of the dispersion effect.
+    /// Note: from khr_materials_dispersion extension.
+    dispersion: f32 = 0.0,
 };
 
 /// The material’s alpha rendering mode enumeration specifying

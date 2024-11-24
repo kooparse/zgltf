@@ -1065,6 +1065,12 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                         }
                     }
                 }
+
+                if (extensions.object.get("KHR_materials_dispersion")) |materials_dispersion| {
+                    if (materials_dispersion.object.get("dispersion")) |dispersion| {
+                        material.dispersion = parseFloat(f32, dispersion);
+                    }
+                }
             }
 
             try self.data.materials.append(material);
