@@ -1035,6 +1035,42 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                         }
                     }
                 }
+
+                if (extensions.object.get("KHR_materials_volume")) |materials_volume| {
+                    if (materials_volume.object.get("thicknessFactor")) |thickness_factor| {
+                        material.thickness_factor = parseFloat(f32, thickness_factor);
+                    }
+
+                    if (materials_volume.object.get("thicknessTexture")) |thickness_texture| {
+                        material.thickness_texture = .{
+                            .index = undefined,
+                        };
+
+                        if (thickness_texture.object.get("index")) |index| {
+                            material.thickness_texture.?.index = parseIndex(index);
+                        }
+
+                        if (thickness_texture.object.get("texCoord")) |index| {
+                            material.thickness_texture.?.texcoord = @as(i32, @intCast(index.integer));
+                        }
+                    }
+
+                    if (materials_volume.object.get("attenuationDistance")) |attenuation_distance| {
+                        material.attenuation_distance = parseFloat(f32, attenuation_distance);
+                    }
+
+                    if (materials_volume.object.get("attenuationColor")) |attenuation_color| {
+                        for (&material.attenuation_color, attenuation_color.array.items) |*dst, src| {
+                            dst.* = parseFloat(f32, src);
+                        }
+                    }
+                }
+
+                if (extensions.object.get("KHR_materials_dispersion")) |materials_dispersion| {
+                    if (materials_dispersion.object.get("dispersion")) |dispersion| {
+                        material.dispersion = parseFloat(f32, dispersion);
+                    }
+                }
             }
 
             try self.data.materials.append(material);

@@ -294,6 +294,21 @@ pub const Material = struct {
     /// The transmission texture.
     /// Note: from khr_materials_transmission extension.
     transmission_texture: ?TextureInfo = null,
+    /// The thickness of the volume beneath the surface.
+    /// Note: from khr_materials_volume extension.
+    thickness_factor: f32 = 0.0,
+    /// A texture that defines the thickness, stored in the G channel.
+    /// Note: from khr_materials_volume extension.
+    thickness_texture: ?TextureInfo = null,
+    /// Density of the medium.
+    /// Note: from khr_materials_volume extension.
+    attenuation_distance: f32 = std.math.inf(f32),
+    /// The color that white light turns into due to absorption.
+    /// Note: from khr_materials_volume extension.
+    attenuation_color: [3]f32 = [_]f32{ 1, 1, 1 },
+    /// The strength of the dispersion effect.
+    /// Note: from khr_materials_dispersion extension.
+    dispersion: f32 = 0.0,
 };
 
 /// The material’s alpha rendering mode enumeration specifying
