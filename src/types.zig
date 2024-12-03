@@ -581,7 +581,7 @@ pub const Camera = struct {
     };
 
     name: []const u8,
-    type: union {
+    type: union(enum) {
         perspective: Perspective,
         orthographic: Orthographic,
     },
