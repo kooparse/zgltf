@@ -1089,6 +1089,14 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                 texture.sampler = parseIndex(sampler);
             }
 
+            if (item.object.get("extensions")) |extension| {
+                if (extension.object.get("EXT_texture_webp")) |webp| {
+                    if (webp.object.get("source")) |source| {
+                        texture.extensions.EXT_texture_webp = .{ .source = parseIndex(source) };
+                    }
+                }
+            }
+
             try self.data.textures.append(texture);
         }
     }

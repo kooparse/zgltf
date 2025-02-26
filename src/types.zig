@@ -337,6 +337,13 @@ pub const Texture = struct {
     /// When undefined, an extension or other mechanism should supply
     /// an alternate texture source, otherwise behavior is undefined.
     source: ?Index = null,
+    /// Extension object with extension-specific objects.
+    extensions: struct {
+        EXT_texture_webp: ?struct {
+            /// The index of the WebP image used by this texture.
+            source: Index,
+        } = null,
+    } = .{},
 };
 
 /// Image data used to create a texture.
