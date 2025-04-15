@@ -402,18 +402,15 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     }
 
     if (gltf.object.get("nodes")) |nodes| {
-        for (nodes.array.items, 0..) |item, index| {
+        for (nodes.array.items) |item| {
             const object = item.object;
 
             var node = Node{
-                .name = undefined,
                 .children = ArrayList(Index).init(alloc),
             };
 
             if (object.get("name")) |name| {
                 node.name = try alloc.dupe(u8, name.string);
-            } else {
-                node.name = try fmt.allocPrint(alloc, "Node_{}", .{index});
             }
 
             if (object.get("mesh")) |mesh| {
@@ -478,18 +475,15 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     }
 
     if (gltf.object.get("cameras")) |cameras| {
-        for (cameras.array.items, 0..) |item, index| {
+        for (cameras.array.items) |item| {
             const object = item.object;
 
             var camera = Camera{
-                .name = undefined,
                 .type = undefined,
             };
 
             if (object.get("name")) |name| {
                 camera.name = try alloc.dupe(u8, name.string);
-            } else {
-                camera.name = try fmt.allocPrint(alloc, "Camera_{}", .{index});
             }
 
             if (object.get("type")) |name| {
@@ -542,18 +536,17 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     }
 
     if (gltf.object.get("skins")) |skins| {
-        for (skins.array.items, 0..) |item, index| {
+        for (
+            skins.array.items,
+        ) |item| {
             const object = item.object;
 
             var skin = Skin{
-                .name = undefined,
                 .joints = ArrayList(Index).init(alloc),
             };
 
             if (object.get("name")) |name| {
                 skin.name = try alloc.dupe(u8, name.string);
-            } else {
-                skin.name = try fmt.allocPrint(alloc, "Skin_{}", .{index});
             }
 
             if (object.get("joints")) |joints| {
@@ -575,18 +568,17 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     }
 
     if (gltf.object.get("meshes")) |meshes| {
-        for (meshes.array.items, 0..) |item, index| {
+        for (
+            meshes.array.items,
+        ) |item| {
             const object = item.object;
 
             var mesh: Mesh = .{
-                .name = undefined,
                 .primitives = ArrayList(Primitive).init(alloc),
             };
 
             if (object.get("name")) |name| {
                 mesh.name = try alloc.dupe(u8, name.string);
-            } else {
-                mesh.name = try fmt.allocPrint(alloc, "Mesh_{}", .{index});
             }
 
             if (object.get("primitives")) |primitives| {
@@ -841,17 +833,13 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     }
 
     if (gltf.object.get("scenes")) |scenes| {
-        for (scenes.array.items, 0..) |item, index| {
+        for (scenes.array.items) |item| {
             const object = item.object;
 
-            var scene = Scene{
-                .name = undefined,
-            };
+            var scene = Scene{};
 
             if (object.get("name")) |name| {
                 scene.name = try alloc.dupe(u8, name.string);
-            } else {
-                scene.name = try fmt.allocPrint(alloc, "Scene_{}", .{index});
             }
 
             if (object.get("nodes")) |nodes| {
@@ -867,17 +855,13 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     }
 
     if (gltf.object.get("materials")) |materials| {
-        for (materials.array.items, 0..) |item, m_index| {
+        for (materials.array.items) |item| {
             const object = item.object;
 
-            var material = Material{
-                .name = undefined,
-            };
+            var material = Material{};
 
             if (object.get("name")) |name| {
                 material.name = try alloc.dupe(u8, name.string);
-            } else {
-                material.name = try fmt.allocPrint(alloc, "Material_{}", .{m_index});
             }
 
             if (object.get("pbrMetallicRoughness")) |pbrMetallicRoughness| {
@@ -1102,19 +1086,16 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     }
 
     if (gltf.object.get("animations")) |animations| {
-        for (animations.array.items, 0..) |item, index| {
+        for (animations.array.items) |item| {
             const object = item.object;
 
             var animation = Animation{
                 .samplers = ArrayList(AnimationSampler).init(alloc),
                 .channels = ArrayList(Channel).init(alloc),
-                .name = undefined,
             };
 
             if (item.object.get("name")) |name| {
                 animation.name = try alloc.dupe(u8, name.string);
-            } else {
-                animation.name = try fmt.allocPrint(alloc, "Animation_{}", .{index});
             }
 
             if (object.get("samplers")) |samplers| {
@@ -1258,7 +1239,6 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                     const object: json.ObjectMap = item.object;
 
                     var light = Light{
-                        .name = null,
                         .type = undefined,
                         .range = math.inf(f32),
                         .spot = null,
@@ -1464,16 +1444,16 @@ test "gltf.parse" {
 
     // Nodes.
     const nodes = gltf.data.nodes.items;
-    try expectEqualSlices(u8, nodes[0].name, "Z_UP");
+    try expectEqualSlices(u8, nodes[0].name orelse "", "Z_UP");
     try expectEqualSlices(usize, nodes[0].children.items, &[_]usize{1});
-    try expectEqualSlices(u8, nodes[2].name, "Cylinder");
+    try expectEqualSlices(u8, nodes[2].name orelse "", "Cylinder");
     try expectEqual(nodes[2].skin, 0);
 
     try expectEqual(gltf.data.buffers.items.len > 0, true);
 
     // Skin
     const skin = gltf.data.skins.items[0];
-    try expectEqualSlices(u8, skin.name, "Armature");
+    try expectEqualSlices(u8, skin.name.?, "Armature");
 }
 
 test "gltf.parse (cameras)" {

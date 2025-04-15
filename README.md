@@ -44,7 +44,7 @@ pub fn main() void {
         ;
 
         print(message, .{
-            node.name,
+            node.name orelse "Unnamed Node",
             node.children.items.len,
             node.skin != null,
         });
