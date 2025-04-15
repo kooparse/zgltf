@@ -349,6 +349,8 @@ pub const Texture = struct {
 /// Image data used to create a texture.
 /// Image may be referenced by an uri or a buffer view index.
 pub const Image = struct {
+    /// The user-defined name of this object.
+    name: ?[]const u8 = null,
     /// The URI (or IRI) of the image.
     uri: ?[]const u8 = null,
     /// The image’s media type.

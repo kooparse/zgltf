@@ -1231,6 +1231,10 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             const object = item.object;
             var image = Image{};
 
+            if (object.get("name")) |name| {
+                image.name = try alloc.dupe(u8, name.string);
+            }
+
             if (object.get("uri")) |uri| {
                 image.uri = try alloc.dupe(u8, uri.string);
             }
