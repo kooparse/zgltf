@@ -536,9 +536,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     }
 
     if (gltf.object.get("skins")) |skins| {
-        for (
-            skins.array.items,
-        ) |item| {
+        for (skins.array.items) |item| {
             const object = item.object;
 
             var skin = Skin{
@@ -568,9 +566,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     }
 
     if (gltf.object.get("meshes")) |meshes| {
-        for (
-            meshes.array.items,
-        ) |item| {
+        for (meshes.array.items) |item| {
             const object = item.object;
 
             var mesh: Mesh = .{
