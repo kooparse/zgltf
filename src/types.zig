@@ -20,8 +20,7 @@ pub const Index = usize;
 /// an animation.channel.target), matrix must not be present.
 pub const Node = struct {
     /// The user-defined name of this object.
-    /// Default to `Node_{index}`.
-    name: []const u8,
+    name: ?[]const u8 = null,
     /// The index of the node's parent.
     /// A node is called a root node when it doesn’t have a parent.
     parent: ?Index = null,
@@ -191,7 +190,7 @@ pub fn AccessorIterator(comptime T: type) type {
 /// The root nodes of a scene.
 pub const Scene = struct {
     /// The user-defined name of this object.
-    name: []const u8,
+    name: ?[]const u8 = null,
     /// The indices of each root node.
     nodes: ?ArrayList(Index) = null,
 };
@@ -199,7 +198,7 @@ pub const Scene = struct {
 /// Joints and matrices defining a skin.
 pub const Skin = struct {
     /// The user-defined name of this object.
-    name: []const u8,
+    name: ?[]const u8 = null,
     /// The index of the accessor containing the floating-point
     /// 4x4 inverse-bind matrices.
     inverse_bind_matrices: ?Index = null,
@@ -260,7 +259,7 @@ pub const MetallicRoughness = struct {
 /// The material appearance of a primitive.
 pub const Material = struct {
     /// The user-defined name of this object.
-    name: []const u8,
+    name: ?[]const u8 = null,
     /// A set of parameter values that are used to define
     /// the metallic-roughness material model
     /// from Physically Based Rendering methodology.
@@ -510,7 +509,7 @@ pub const AnimationSampler = struct {
 /// A keyframe animation.
 pub const Animation = struct {
     /// The user-defined name of this object.
-    name: []const u8,
+    name: ?[]const u8 = null,
     /// An array of animation channels.
     /// An animation channel combines an animation sampler with a target
     /// property being animated.
@@ -537,7 +536,7 @@ pub const Primitive = struct {
 /// Its global transform is defined by a node that references it.
 pub const Mesh = struct {
     /// The user-defined name of this object.
-    name: []const u8,
+    name: ?[]const u8 = null,
     /// An array of primitives, each defining geometry to be rendered.
     primitives: ArrayList(Primitive),
 };
@@ -589,7 +588,7 @@ pub const Camera = struct {
         znear: f32,
     };
 
-    name: []const u8,
+    name: ?[]const u8 = null,
     type: union(enum) {
         perspective: Perspective,
         orthographic: Orthographic,
@@ -623,7 +622,7 @@ pub const LightType = enum {
 
 /// A directional, point or spot light.
 pub const Light = struct {
-    name: ?[]const u8,
+    name: ?[]const u8 = null,
     /// Color of the light source.
     color: [3]f32 = .{ 1, 1, 1 },
     /// Intensity of the light source. `point` and `spot` lights use luminous intensity in candela (lm/sr)
