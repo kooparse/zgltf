@@ -313,7 +313,7 @@ pub const Material = struct {
 
 /// The material’s alpha rendering mode enumeration specifying
 /// the interpretation of the alpha value of the base color.
-const AlphaMode = enum {
+pub const AlphaMode = enum {
     /// The alpha value is ignored, and the rendered output is fully opaque.
     @"opaque",
     /// The rendered output is either fully opaque or fully transparent
