@@ -149,7 +149,7 @@ pub fn debugPrint(self: *const Self) void {
 
         for (self.data.skins.items) |skin| {
             print("     '{s}' found with {} joint(s).\n", .{
-                skin.name,
+                skin.name.?,
                 skin.joints.items.len,
             });
         }
@@ -163,7 +163,7 @@ pub fn debugPrint(self: *const Self) void {
         for (self.data.animations.items) |anim| {
             print(
                 "     '{s}' found with {} sampler(s) and {} channel(s).\n",
-                .{ anim.name, anim.samplers.items.len, anim.channels.items.len },
+                .{ anim.name.?, anim.samplers.items.len, anim.channels.items.len },
             );
         }
 
