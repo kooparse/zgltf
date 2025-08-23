@@ -386,17 +386,17 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
         var asset = &self.data.asset;
 
         if (json_value.object.get("version")) |version| {
-            asset.version = try alloc.dupe(u8, version.string);
+            asset.version = version.string;
         } else {
             panic("Asset's version is missing.", .{});
         }
 
         if (json_value.object.get("generator")) |generator| {
-            asset.generator = try alloc.dupe(u8, generator.string);
+            asset.generator = generator.string;
         }
 
         if (json_value.object.get("copyright")) |copyright| {
-            asset.copyright = try alloc.dupe(u8, copyright.string);
+            asset.copyright = copyright.string;
         }
     }
 
@@ -408,7 +408,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             var node = Node{};
 
             if (object.get("name")) |name| {
-                node.name = try alloc.dupe(u8, name.string);
+                node.name = name.string;
             }
 
             if (object.get("mesh")) |mesh| {
@@ -487,7 +487,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             };
 
             if (object.get("name")) |name| {
-                camera.name = try alloc.dupe(u8, name.string);
+                camera.name = name.string;
             }
 
             if (object.get("extras")) |extras| {
@@ -551,7 +551,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             var skin = Skin{};
 
             if (object.get("name")) |name| {
-                skin.name = try alloc.dupe(u8, name.string);
+                skin.name = name.string;
             }
 
             if (object.get("joints")) |joints| {
@@ -585,7 +585,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             var mesh: Mesh = .{};
 
             if (object.get("name")) |name| {
-                mesh.name = try alloc.dupe(u8, name.string);
+                mesh.name = name.string;
             }
 
             if (object.get("primitives")) |primitives| {
@@ -865,7 +865,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             var scene = Scene{};
 
             if (object.get("name")) |name| {
-                scene.name = try alloc.dupe(u8, name.string);
+                scene.name = name.string;
             }
 
             if (object.get("nodes")) |nodes| {
@@ -892,7 +892,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             var material = Material{};
 
             if (object.get("name")) |name| {
-                material.name = try alloc.dupe(u8, name.string);
+                material.name = name.string;
             }
 
             if (object.get("pbrMetallicRoughness")) |pbrMetallicRoughness| {
@@ -1133,7 +1133,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             var animation = Animation{};
 
             if (item.object.get("name")) |name| {
-                animation.name = try alloc.dupe(u8, name.string);
+                animation.name = name.string;
             }
 
             if (object.get("samplers")) |samplers| {
@@ -1271,15 +1271,15 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             var image = Image{};
 
             if (object.get("name")) |name| {
-                image.name = try alloc.dupe(u8, name.string);
+                image.name = name.string;
             }
 
             if (object.get("uri")) |uri| {
-                image.uri = try alloc.dupe(u8, uri.string);
+                image.uri = uri.string;
             }
 
             if (object.get("mimeType")) |mime_type| {
-                image.mime_type = try alloc.dupe(u8, mime_type.string);
+                image.mime_type = mime_type.string;
             }
 
             if (object.get("bufferView")) |buffer_view| {
@@ -1308,7 +1308,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                     };
 
                     if (object.get("name")) |name| {
-                        light.name = try alloc.dupe(u8, name.string);
+                        light.name = name.string;
                     }
 
                     if (object.get("color")) |color| {
