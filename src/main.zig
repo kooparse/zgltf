@@ -80,31 +80,29 @@ data: Data,
 glb_binary: ?[]align(4) const u8 = null,
 
 pub fn init(allocator: Allocator) Self {
-    var arena = allocator.create(ArenaAllocator) catch {
+    const arena = allocator.create(ArenaAllocator) catch {
         panic("Error while allocating memory for gltf arena.", .{});
     };
-
     arena.* = ArenaAllocator.init(allocator);
 
-    const alloc = arena.allocator();
     return Self{
         .arena = arena,
         .data = .{
             .asset = Asset{ .version = "Undefined" },
-            .scenes = ArrayList(Scene).init(alloc),
-            .nodes = ArrayList(Node).init(alloc),
-            .cameras = ArrayList(Camera).init(alloc),
-            .meshes = ArrayList(Mesh).init(alloc),
-            .materials = ArrayList(Material).init(alloc),
-            .skins = ArrayList(Skin).init(alloc),
-            .samplers = ArrayList(TextureSampler).init(alloc),
-            .images = ArrayList(Image).init(alloc),
-            .animations = ArrayList(Animation).init(alloc),
-            .textures = ArrayList(Texture).init(alloc),
-            .accessors = ArrayList(Accessor).init(alloc),
-            .buffer_views = ArrayList(BufferView).init(alloc),
-            .buffers = ArrayList(Buffer).init(alloc),
-            .lights = ArrayList(Light).init(alloc),
+            .scenes = ArrayList(Scene).empty,
+            .nodes = ArrayList(Node).empty,
+            .cameras = ArrayList(Camera).empty,
+            .meshes = ArrayList(Mesh).empty,
+            .materials = ArrayList(Material).empty,
+            .skins = ArrayList(Skin).empty,
+            .samplers = ArrayList(TextureSampler).empty,
+            .images = ArrayList(Image).empty,
+            .animations = ArrayList(Animation).empty,
+            .textures = ArrayList(Texture).empty,
+            .accessors = ArrayList(Accessor).empty,
+            .buffer_views = ArrayList(BufferView).empty,
+            .buffers = ArrayList(Buffer).empty,
+            .lights = ArrayList(Light).empty,
         },
     };
 }
@@ -179,6 +177,7 @@ pub fn getDataFromBufferView(
     comptime T: type,
     /// List that will be fill with data.
     list: *ArrayList(T),
+    allocator: std.mem.Allocator,
     accessor: Accessor,
     binary: []const u8,
 ) void {
@@ -235,7 +234,7 @@ pub fn getDataFromBufferView(
     var current_count: usize = 0;
     while (current_count < total_count) : (current_count += 1) {
         const slice = (data + offset + current_count * stride)[0..datum_count];
-        list.appendSlice(slice) catch unreachable;
+        list.appendSlice(allocator, slice) catch unreachable;
     }
 }
 
@@ -402,11 +401,12 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     }
 
     if (gltf.object.get("nodes")) |nodes| {
+        try self.data.nodes.ensureTotalCapacity(alloc, nodes.array.items.len);
         for (nodes.array.items) |item| {
             const object = item.object;
 
             var node = Node{
-                .children = ArrayList(Index).init(alloc),
+                .children = ArrayList(Index).empty,
             };
 
             if (object.get("name")) |name| {
@@ -426,8 +426,9 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             }
 
             if (object.get("children")) |children| {
+                try node.children.ensureTotalCapacity(alloc, children.array.items.len);
                 for (children.array.items) |value| {
-                    try node.children.append(parseIndex(value));
+                    node.children.appendAssumeCapacity(parseIndex(value));
                 }
             }
 
@@ -474,11 +475,12 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                 node.extras = extras.object;
             }
 
-            try self.data.nodes.append(node);
+            self.data.nodes.appendAssumeCapacity(node);
         }
     }
 
     if (gltf.object.get("cameras")) |cameras| {
+        try self.data.cameras.ensureTotalCapacity(alloc, cameras.array.items.len);
         for (cameras.array.items) |item| {
             const object = item.object;
 
@@ -539,16 +541,17 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                 }
             }
 
-            try self.data.cameras.append(camera);
+            self.data.cameras.appendAssumeCapacity(camera);
         }
     }
 
     if (gltf.object.get("skins")) |skins| {
+        try self.data.skins.ensureTotalCapacity(alloc, skins.array.items.len);
         for (skins.array.items) |item| {
             const object = item.object;
 
             var skin = Skin{
-                .joints = ArrayList(Index).init(alloc),
+                .joints = ArrayList(Index).empty,
             };
 
             if (object.get("name")) |name| {
@@ -556,8 +559,9 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             }
 
             if (object.get("joints")) |joints| {
+                try skin.joints.ensureTotalCapacity(alloc, joints.array.items.len);
                 for (joints.array.items) |join| {
-                    try skin.joints.append(parseIndex(join));
+                    skin.joints.appendAssumeCapacity(parseIndex(join));
                 }
             }
 
@@ -573,16 +577,17 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                 skin.extras = extras.object;
             }
 
-            try self.data.skins.append(skin);
+            self.data.skins.appendAssumeCapacity(skin);
         }
     }
 
     if (gltf.object.get("meshes")) |meshes| {
+        try self.data.meshes.ensureTotalCapacity(alloc, meshes.array.items.len);
         for (meshes.array.items) |item| {
             const object = item.object;
 
             var mesh: Mesh = .{
-                .primitives = ArrayList(Primitive).init(alloc),
+                .primitives = ArrayList(Primitive).empty,
             };
 
             if (object.get("name")) |name| {
@@ -590,9 +595,10 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             }
 
             if (object.get("primitives")) |primitives| {
+                try mesh.primitives.ensureTotalCapacity(alloc, primitives.array.items.len);
                 for (primitives.array.items) |prim_item| {
                     var primitive: Primitive = .{
-                        .attributes = ArrayList(Attribute).init(alloc),
+                        .attributes = ArrayList(Attribute).empty,
                     };
 
                     if (prim_item.object.get("mode")) |mode| {
@@ -608,8 +614,9 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                     }
 
                     if (prim_item.object.get("attributes")) |attributes| {
+                        try primitive.attributes.ensureTotalCapacity(alloc, attributes.object.count());
                         if (attributes.object.get("POSITION")) |position| {
-                            try primitive.attributes.append(
+                            primitive.attributes.appendAssumeCapacity(
                                 .{
                                     .position = parseIndex(position),
                                 },
@@ -617,7 +624,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                         }
 
                         if (attributes.object.get("NORMAL")) |normal| {
-                            try primitive.attributes.append(
+                            primitive.attributes.appendAssumeCapacity(
                                 .{
                                     .normal = parseIndex(normal),
                                 },
@@ -625,7 +632,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                         }
 
                         if (attributes.object.get("TANGENT")) |tangent| {
-                            try primitive.attributes.append(
+                            primitive.attributes.appendAssumeCapacity(
                                 .{
                                     .tangent = parseIndex(tangent),
                                 },
@@ -644,7 +651,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
 
                         for (texcoords) |tex_name| {
                             if (attributes.object.get(tex_name)) |texcoord| {
-                                try primitive.attributes.append(
+                                primitive.attributes.appendAssumeCapacity(
                                     .{
                                         .texcoord = parseIndex(texcoord),
                                     },
@@ -664,7 +671,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
 
                         for (joints) |join_count| {
                             if (attributes.object.get(join_count)) |joint| {
-                                try primitive.attributes.append(
+                                primitive.attributes.appendAssumeCapacity(
                                     .{
                                         .joints = parseIndex(joint),
                                     },
@@ -684,7 +691,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
 
                         for (weights) |weight_count| {
                             if (attributes.object.get(weight_count)) |weight| {
-                                try primitive.attributes.append(
+                                primitive.attributes.appendAssumeCapacity(
                                     .{
                                         .weights = parseIndex(weight),
                                     },
@@ -697,7 +704,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                         primitive.extras = extras.object;
                     }
 
-                    try mesh.primitives.append(primitive);
+                    mesh.primitives.appendAssumeCapacity(primitive);
                 }
             }
 
@@ -705,11 +712,12 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                 mesh.extras = extras.object;
             }
 
-            try self.data.meshes.append(mesh);
+            self.data.meshes.appendAssumeCapacity(mesh);
         }
     }
 
     if (gltf.object.get("accessors")) |accessors| {
+        try self.data.accessors.ensureTotalCapacity(alloc, accessors.array.items.len);
         for (accessors.array.items) |item| {
             const object = item.object;
 
@@ -789,11 +797,12 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                 .mat4x4 => 16 * component_size,
             };
 
-            try self.data.accessors.append(accessor);
+            self.data.accessors.appendAssumeCapacity(accessor);
         }
     }
 
     if (gltf.object.get("bufferViews")) |buffer_views| {
+        try self.data.buffer_views.ensureTotalCapacity(alloc, buffer_views.array.items.len);
         for (buffer_views.array.items) |item| {
             const object = item.object;
 
@@ -826,11 +835,12 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                 buffer_view.extras = extras.object;
             }
 
-            try self.data.buffer_views.append(buffer_view);
+            self.data.buffer_views.appendAssumeCapacity(buffer_view);
         }
     }
 
     if (gltf.object.get("buffers")) |buffers| {
+        try self.data.buffers.ensureTotalCapacity(alloc, buffers.array.items.len);
         for (buffers.array.items) |item| {
             const object = item.object;
 
@@ -852,7 +862,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                 buffer.extras = extras.object;
             }
 
-            try self.data.buffers.append(buffer);
+            self.data.buffers.appendAssumeCapacity(buffer);
         }
     }
 
@@ -861,6 +871,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
     }
 
     if (gltf.object.get("scenes")) |scenes| {
+        try self.data.scenes.ensureTotalCapacity(alloc, scenes.array.items.len);
         for (scenes.array.items) |item| {
             const object = item.object;
 
@@ -871,10 +882,10 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             }
 
             if (object.get("nodes")) |nodes| {
-                scene.nodes = ArrayList(Index).init(alloc);
+                scene.nodes = try ArrayList(Index).initCapacity(alloc, nodes.array.items.len);
 
                 for (nodes.array.items) |node| {
-                    try scene.nodes.?.append(parseIndex(node));
+                    scene.nodes.?.appendAssumeCapacity(parseIndex(node));
                 }
             }
 
@@ -882,11 +893,12 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                 scene.extras = extras.object;
             }
 
-            try self.data.scenes.append(scene);
+            self.data.scenes.appendAssumeCapacity(scene);
         }
     }
 
     if (gltf.object.get("materials")) |materials| {
+        try self.data.materials.ensureTotalCapacity(alloc, materials.array.items.len);
         for (materials.array.items) |item| {
             const object = item.object;
 
@@ -1093,11 +1105,12 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                 material.extras = extras.object;
             }
 
-            try self.data.materials.append(material);
+            self.data.materials.appendAssumeCapacity(material);
         }
     }
 
     if (gltf.object.get("textures")) |textures| {
+        try self.data.textures.ensureTotalCapacity(alloc, textures.array.items.len);
         for (textures.array.items) |item| {
             var texture = Texture{};
 
@@ -1121,17 +1134,18 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                 texture.extras = extras.object;
             }
 
-            try self.data.textures.append(texture);
+            self.data.textures.appendAssumeCapacity(texture);
         }
     }
 
     if (gltf.object.get("animations")) |animations| {
+        try self.data.animations.ensureTotalCapacity(alloc, animations.array.items.len);
         for (animations.array.items) |item| {
             const object = item.object;
 
             var animation = Animation{
-                .samplers = ArrayList(AnimationSampler).init(alloc),
-                .channels = ArrayList(Channel).init(alloc),
+                .samplers = ArrayList(AnimationSampler).empty,
+                .channels = ArrayList(Channel).empty,
             };
 
             if (item.object.get("name")) |name| {
@@ -1139,6 +1153,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
             }
 
             if (object.get("samplers")) |samplers| {
+                try animation.samplers.ensureTotalCapacity(alloc, samplers.array.items.len);
                 for (samplers.array.items) |sampler_item| {
                     var sampler: AnimationSampler = .{
                         .input = undefined,
@@ -1175,11 +1190,12 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                         sampler.extras = extras.object;
                     }
 
-                    try animation.samplers.append(sampler);
+                    animation.samplers.appendAssumeCapacity(sampler);
                 }
             }
 
             if (object.get("channels")) |channels| {
+                try animation.channels.ensureTotalCapacity(alloc, channels.array.items.len);
                 for (channels.array.items) |channel_item| {
                     var channel: Channel = .{ .sampler = undefined, .target = .{
                         .node = undefined,
@@ -1222,7 +1238,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                         channel.extras = extras.object;
                     }
 
-                    try animation.channels.append(channel);
+                    animation.channels.appendAssumeCapacity(channel);
                 }
             }
 
@@ -1230,11 +1246,12 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                 animation.extras = extras.object;
             }
 
-            try self.data.animations.append(animation);
+            self.data.animations.appendAssumeCapacity(animation);
         }
     }
 
     if (gltf.object.get("samplers")) |samplers| {
+        try self.data.samplers.ensureTotalCapacity(alloc, samplers.array.items.len);
         for (samplers.array.items) |item| {
             const object = item.object;
             var sampler = TextureSampler{};
@@ -1259,11 +1276,12 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                 sampler.extras = extras.object;
             }
 
-            try self.data.samplers.append(sampler);
+            self.data.samplers.appendAssumeCapacity(sampler);
         }
     }
 
     if (gltf.object.get("images")) |images| {
+        try self.data.images.ensureTotalCapacity(alloc, images.array.items.len);
         for (images.array.items) |item| {
             const object = item.object;
             var image = Image{};
@@ -1288,13 +1306,14 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                 image.extras = extras.object;
             }
 
-            try self.data.images.append(image);
+            self.data.images.appendAssumeCapacity(image);
         }
     }
 
     if (gltf.object.get("extensions")) |extensions| {
         if (extensions.object.get("KHR_lights_punctual")) |lights_punctual| {
             if (lights_punctual.object.get("lights")) |lights| {
+                try self.data.lights.ensureTotalCapacity(alloc, lights.array.items.len);
                 for (lights.array.items) |item| {
                     const object: json.ObjectMap = item.object;
 
@@ -1344,7 +1363,7 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                         light.extras = extras.object;
                     }
 
-                    try self.data.lights.append(light);
+                    self.data.lights.appendAssumeCapacity(light);
                 }
             }
         }
@@ -1407,7 +1426,7 @@ test "gltf.parseGlb" {
     const expectEqualSlices = std.testing.expectEqualSlices;
 
     // This is the '.glb' file.
-    const glb_buf = try std.fs.cwd().readFileAllocOptions(allocator, "test-samples/box_binary/Box.glb", 512_000, null, 4, null);
+    const glb_buf = try std.fs.cwd().readFileAllocOptions(allocator, "test-samples/box_binary/Box.glb", 512_000, null, .@"4", null);
     defer allocator.free(glb_buf);
 
     var gltf = Self.init(allocator);
@@ -1422,11 +1441,11 @@ test "gltf.parseGlb" {
         for (primitive.attributes.items) |attribute| {
             switch (attribute) {
                 .position => |accessor_index| {
-                    var tmp = ArrayList(f32).init(allocator);
-                    defer tmp.deinit();
+                    var tmp = ArrayList(f32).empty;
+                    defer tmp.deinit(allocator);
 
                     const accessor = gltf.data.accessors.items[accessor_index];
-                    gltf.getDataFromBufferView(f32, &tmp, accessor, gltf.glb_binary.?);
+                    gltf.getDataFromBufferView(f32, &tmp, allocator, accessor, gltf.glb_binary.?);
 
                     try expectEqualSlices(f32, tmp.items, &[72]f32{
                         // zig fmt: off
@@ -1456,7 +1475,7 @@ test "gltf.parseGlbTextured" {
         "test-samples/box_binary_textured/BoxTextured.glb",
         512_000,
         null,
-        4,
+        .@"4",
         null
     );
     defer allocator.free(glb_buf);
@@ -1489,7 +1508,7 @@ test "gltf.parse" {
         "test-samples/rigged_simple/RiggedSimple.gltf",
         512_000,
         null,
-        4,
+        .@"4",
         null
     );
     defer allocator.free(buf);
@@ -1529,7 +1548,7 @@ test "gltf.parse (cameras)" {
         "test-samples/cameras/Cameras.gltf",
         512_000,
         null,
-        4,
+        .@"4",
         null
     );
     defer allocator.free(buf);
@@ -1568,7 +1587,7 @@ test "gltf.getDataFromBufferView" {
         "test-samples/box/Box.gltf",
         512_000,
         null,
-        4,
+        .@"4",
         null
     );
     defer allocator.free(buf);
@@ -1580,7 +1599,7 @@ test "gltf.getDataFromBufferView" {
         5_000_000,
         null,
         // From gltf spec, data from BufferView should be 4 bytes aligned.
-        4,
+        .@"4",
         null,
     );
     defer allocator.free(binary);
@@ -1595,11 +1614,11 @@ test "gltf.getDataFromBufferView" {
         for (primitive.attributes.items) |attribute| {
             switch (attribute) {
                 .position => |accessor_index| {
-                    var tmp = ArrayList(f32).init(allocator);
-                    defer tmp.deinit();
+                    var tmp = ArrayList(f32).empty;
+                    defer tmp.deinit(allocator);
 
                     const accessor = gltf.data.accessors.items[accessor_index];
-                    gltf.getDataFromBufferView(f32, &tmp, accessor, binary);
+                    gltf.getDataFromBufferView(f32, &tmp, allocator, accessor, binary);
 
                     try expectEqualSlices(f32, tmp.items, &[72]f32{
                         // zig fmt: off
@@ -1629,7 +1648,7 @@ test "gltf.parse (lights)" {
         "test-samples/khr_lights_punctual/Lights.gltf",
         512_000,
         null,
-        4,
+        .@"4",
         null
     );
     defer allocator.free(buf);
