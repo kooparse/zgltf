@@ -127,41 +127,52 @@ pub fn debugPrint(self: *const Self) void {
         \\    Animation  {}
         \\    Texture    {}
         \\    Material   {}
-        \\
+        \\    Accessor   {}
+        \\    BufferView {}
+        \\    Buffer     {}
+        \\    Camera     {}
+        \\    Light      {}
+        \\    Scene      {}
         \\
     ;
 
     print(msg, .{
-        self.data.nodes.items.len,
-        self.data.meshes.items.len,
-        self.data.skins.items.len,
-        self.data.animations.items.len,
-        self.data.textures.items.len,
-        self.data.materials.items.len,
+        self.data.nodes.len,
+        self.data.meshes.len,
+        self.data.skins.len,
+        self.data.animations.len,
+        self.data.textures.len,
+        self.data.materials.len,
+        self.data.accessors.len,
+        self.data.buffer_views.len,
+        self.data.buffers.len,
+        self.data.cameras.len,
+        self.data.lights.len,
+        self.data.scenes.len,
     });
 
     print("  Details:\n\n", .{});
 
-    if (self.data.skins.items.len > 0) {
+    if (self.data.skins.len > 0) {
         print("   Skins found:\n", .{});
 
-        for (self.data.skins.items) |skin| {
+        for (self.data.skins) |skin| {
             print("     '{s}' found with {} joint(s).\n", .{
                 skin.name.?,
-                skin.joints.items.len,
+                skin.joints.len,
             });
         }
 
         print("\n", .{});
     }
 
-    if (self.data.animations.items.len > 0) {
+    if (self.data.animations.len > 0) {
         print("  Animations found:\n", .{});
 
-        for (self.data.animations.items) |anim| {
+        for (self.data.animations) |anim| {
             print(
                 "     '{s}' found with {} sampler(s) and {} channel(s).\n",
-                .{ anim.name.?, anim.samplers.items.len, anim.channels.items.len },
+                .{ anim.name.?, anim.samplers.len, anim.channels.len },
             );
         }
 
@@ -658,8 +669,8 @@ fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
                             "JOINTS_6",
                         };
 
-                        for (joints) |join_count| {
-                            if (attributes.object.get(join_count)) |joint| {
+                        for (joints) |joint_name| {
+                            if (attributes.object.get(joint_name)) |joint| {
                                 primitive.attributes[attribute_index] = .{
                                     .joints = parseIndex(joint),
                                 };

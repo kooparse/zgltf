@@ -1,3 +1,4 @@
 .zig-cache/
 build_runner.zig
 .DS_Store
+zig-out
