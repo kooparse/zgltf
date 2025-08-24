@@ -278,7 +278,7 @@ pub fn getGlobalTransform(data: *const Data, node: Node) Mat4 {
     var node_transform: Mat4 = getLocalTransform(node);
 
     while (parent_index != null) {
-        const parent = data.nodes.items[parent_index.?];
+        const parent = data.nodes[parent_index.?];
         const parent_transform = getLocalTransform(parent);
 
         node_transform = helpers.mul(parent_transform, node_transform);
@@ -1679,4 +1679,8 @@ test "gltf.parse (lights)" {
 
     try expect(gltf.data.nodes[0].light != null);
     try expectEqual(@as(?Index, 0), gltf.data.nodes[0].light);
+}
+
+test "gltf refAllDecls" {
+    std.testing.refAllDecls(@This());
 }
