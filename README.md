@@ -9,7 +9,7 @@ Note: It's not as complete as the glTF specification yet, but because it's strai
 
 If you would like to contribute, don't hesitate! :)
 
-Note: The main branch is for the latest Zig release (0.14.x).
+Note: The main branch is for the latest Zig release (0.15.1).
 
 ## Examples
 
