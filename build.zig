@@ -9,10 +9,13 @@ pub fn build(b: *std.Build) void {
     });
 
     var tests = b.addTest(.{
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.addModule("main", .{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
+    b.installArtifact(tests);
 
     const test_step = b.step("test", "Run tests");
     test_step.dependOn(&tests.step);

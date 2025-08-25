@@ -1,7 +1,6 @@
 const std = @import("std");
 const Gltf = @import("main.zig");
 const pi = std.math.pi;
-const ArrayList = std.ArrayList;
 const panic = std.debug.panic;
 const json = @import("std").json;
 
@@ -32,7 +31,7 @@ pub const Node = struct {
     /// The index of the skin referenced by this node.
     skin: ?Index = null,
     /// The indices of this node’s children.
-    children: ArrayList(Index),
+    children: []Index = &[_]Index{},
     /// A floating-point 4x4 transformation matrix stored in column-major order.
     matrix: ?[16]f32 = null,
     /// The node’s unit quaternion rotation in the order (x, y, z, w),
@@ -201,7 +200,7 @@ pub const Scene = struct {
     /// The user-defined name of this object.
     name: ?[]const u8 = null,
     /// The indices of each root node.
-    nodes: ?ArrayList(Index) = null,
+    nodes: ?[]Index = null,
     /// Any extra, custom attributes.
     extras: ?json.ObjectMap = null,
 };
@@ -216,7 +215,7 @@ pub const Skin = struct {
     /// The index of the node used as a skeleton root.
     skeleton: ?Index = null,
     /// Indices of skeleton nodes, used as joints in this skin.
-    joints: ArrayList(Index),
+    joints: []Index = &[_]Index{},
     /// Any extra, custom attributes.
     extras: ?json.ObjectMap = null,
 };
@@ -539,18 +538,18 @@ pub const Animation = struct {
     /// An animation channel combines an animation sampler with a target
     /// property being animated.
     /// Different channels of the same animation must not have the same targets.
-    channels: ArrayList(Channel),
+    channels: []Channel = &[_]Channel{},
     /// An array of animation samplers.
     /// An animation sampler combines timestamps with a sequence of output
     /// values and defines an interpolation algorithm.
-    samplers: ArrayList(AnimationSampler),
+    samplers: []AnimationSampler = &[_]AnimationSampler{},
     /// Any extra, custom attributes.
     extras: ?json.ObjectMap = null,
 };
 
 /// Geometry to be rendered with the given material.
 pub const Primitive = struct {
-    attributes: ArrayList(Attribute),
+    attributes: []Attribute = &[_]Attribute{},
     /// The topology type of primitives to render.
     mode: Mode = .triangles,
     /// The index of the accessor that contains the vertex indices.
@@ -567,7 +566,7 @@ pub const Mesh = struct {
     /// The user-defined name of this object.
     name: ?[]const u8 = null,
     /// An array of primitives, each defining geometry to be rendered.
-    primitives: ArrayList(Primitive),
+    primitives: []Primitive = &[_]Primitive{},
     /// Any extra, custom attributes.
     extras: ?json.ObjectMap = null,
 };
