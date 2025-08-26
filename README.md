@@ -15,7 +15,7 @@ Note: The main branch is for the latest Zig release (0.15.1).
 
 ```zig
 const std = @import("std");
-const Gltf = @import("zgltf");
+const Gltf = @import("zgltf").Gltf;
 
 const allocator = std.heap.page_allocator;
 const print = std.debug.print;
@@ -31,7 +31,7 @@ pub fn main() void {
     );
     defer allocator.free(buf);
 
-    var gltf = Self.init(allocator);
+    var gltf = Gltf.init(allocator);
     defer gltf.deinit();
 
     try gltf.parse(buf);
@@ -124,11 +124,15 @@ for (primitive.attributes.items) |attribute| {
 
 ## Install
 
-Note: **Zig 0.11.x is required.**
+Note: **Zig 0.15.1 is required.**
+
+```sh
+zig fetch --save git+https://github.com/kooparse/zgltf
+```
 
 ```zig
-const zgltf = @import("path-to-zgltf/build.zig");
-exe.addModule("zgltf", zgltf.module(b));
+const zgltf = b.dependency("zgltf", .{});
+exe.addModule("zgltf", zgltf.module("zgltf"));
 ```
 
 ## Features

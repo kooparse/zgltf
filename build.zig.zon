@@ -1,7 +1,8 @@
 .{
     .name = .zgltf,
-    .fingerprint = 0x7dfe8a1202907eb1,
     .version = "0.1.0",
+    .fingerprint = 0x7dfe8a1202907eb1,
+    .minimum_zig_version = "0.15.1",
     .dependencies = .{},
     .paths = .{
         ".github",

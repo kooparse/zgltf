@@ -2,7 +2,7 @@
 /// glTF™ 2.0 Specification is available here:
 /// https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html
 ///
-const Self = @This();
+const Gltf = @This();
 
 const std = @import("std");
 const helpers = @import("helpers.zig");
@@ -79,13 +79,13 @@ data: Data,
 
 glb_binary: ?[]align(4) const u8 = null,
 
-pub fn init(allocator: Allocator) Self {
+pub fn init(allocator: Allocator) Gltf {
     const arena = allocator.create(ArenaAllocator) catch {
         panic("Error while allocating memory for gltf arena.", .{});
     };
     arena.* = ArenaAllocator.init(allocator);
 
-    return Self{
+    return Gltf{
         .arena = arena,
         .data = .{
             .asset = Asset{ .version = "Undefined" },
@@ -108,7 +108,7 @@ pub fn init(allocator: Allocator) Self {
 }
 
 /// Fill data by parsing a glTF file's buffer.
-pub fn parse(self: *Self, file_buffer: []align(4) const u8) !void {
+pub fn parse(self: *Gltf, file_buffer: []align(4) const u8) !void {
     if (isGlb(file_buffer)) {
         try self.parseGlb(file_buffer);
     } else {
@@ -116,7 +116,7 @@ pub fn parse(self: *Self, file_buffer: []align(4) const u8) !void {
     }
 }
 
-pub fn debugPrint(self: *const Self) void {
+pub fn debugPrint(self: *const Gltf) void {
     const msg =
         \\
         \\  glTF file info:
@@ -184,7 +184,7 @@ pub fn debugPrint(self: *const Self) void {
 /// Note: This library won't pull to memory the binary buffer corresponding
 /// to the BufferView.
 pub fn getDataFromBufferView(
-    self: *const Self,
+    self: *const Gltf,
     comptime T: type,
     /// List that will be fill with data.
     list: *ArrayList(T),
@@ -249,7 +249,7 @@ pub fn getDataFromBufferView(
     }
 }
 
-pub fn deinit(self: *Self) void {
+pub fn deinit(self: *Gltf) void {
     self.arena.deinit();
     self.arena.child_allocator.destroy(self.arena);
 }
@@ -295,7 +295,7 @@ fn isGlb(glb_buffer: []align(4) const u8) bool {
     return fields[0] == GLB_MAGIC_NUMBER;
 }
 
-fn parseGlb(self: *Self, glb_buffer: []align(4) const u8) !void {
+fn parseGlb(self: *Gltf, glb_buffer: []align(4) const u8) !void {
     const GLB_CHUNK_TYPE_JSON: u32 = 0x4E4F534A; // 'JSON' in ASCII.
     const GLB_CHUNK_TYPE_BIN: u32 = 0x004E4942; // 'BIN' in ASCII.
 
@@ -385,7 +385,7 @@ fn parseGlb(self: *Self, glb_buffer: []align(4) const u8) !void {
     }
 }
 
-fn parseGltfJson(self: *Self, gltf_json: []const u8) !void {
+fn parseGltfJson(self: *Gltf, gltf_json: []const u8) !void {
     const alloc = self.arena.allocator();
 
     var gltf_parsed = try json.parseFromSlice(json.Value, alloc, gltf_json, .{});
@@ -1424,7 +1424,7 @@ test "gltf.parseGlb" {
     const glb_buf = try std.fs.cwd().readFileAllocOptions(allocator, "test-samples/box_binary/Box.glb", 512_000, null, .@"4", null);
     defer allocator.free(glb_buf);
 
-    var gltf = Self.init(allocator);
+    var gltf = Gltf.init(allocator);
     defer gltf.deinit();
 
     try expectEqualSlices(u8, gltf.data.asset.version, "Undefined");
@@ -1475,7 +1475,7 @@ test "gltf.parseGlbTextured" {
     );
     defer allocator.free(glb_buf);
 
-    var gltf = Self.init(allocator);
+    var gltf = Gltf.init(allocator);
     defer gltf.deinit();
 
     try gltf.parseGlb(glb_buf);
@@ -1508,7 +1508,7 @@ test "gltf.parse" {
     );
     defer allocator.free(buf);
 
-    var gltf = Self.init(allocator);
+    var gltf = Gltf.init(allocator);
     defer gltf.deinit();
 
     try expectEqualSlices(u8, gltf.data.asset.version, "Undefined");
@@ -1548,7 +1548,7 @@ test "gltf.parse (cameras)" {
     );
     defer allocator.free(buf);
 
-    var gltf = Self.init(allocator);
+    var gltf = Gltf.init(allocator);
     defer gltf.deinit();
 
     try gltf.parse(buf);
@@ -1599,7 +1599,7 @@ test "gltf.getDataFromBufferView" {
     );
     defer allocator.free(binary);
 
-    var gltf = Self.init(allocator);
+    var gltf = Gltf.init(allocator);
     defer gltf.deinit();
 
     try gltf.parse(buf);
@@ -1648,7 +1648,7 @@ test "gltf.parse (lights)" {
     );
     defer allocator.free(buf);
 
-    var gltf = Self.init(allocator);
+    var gltf = Gltf.init(allocator);
     defer gltf.deinit();
 
     try gltf.parse(buf);
