@@ -1,5 +1,5 @@
 const std = @import("std");
-const Gltf = @import("main.zig");
+const Gltf = @import("Gltf.zig");
 const pi = std.math.pi;
 const panic = std.debug.panic;
 const json = @import("std").json;
