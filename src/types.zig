@@ -124,7 +124,7 @@ pub const Accessor = struct {
             panic("Accessors without buffer_view are not supported yet.", .{});
         }
 
-        const buffer_view = gltf.data.buffer_views.items[accessor.buffer_view.?];
+        const buffer_view = gltf.data.buffer_views[accessor.buffer_view.?];
 
         const comp_size = @sizeOf(T);
         const offset = (accessor.byte_offset + buffer_view.byte_offset) / comp_size;
