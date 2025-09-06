@@ -186,20 +186,11 @@ pub fn debugPrint(self: *const Gltf) void {
 pub fn getDataFromBufferView(
     self: *const Gltf,
     comptime T: type,
-    /// List that will be fill with data.
-    list: *ArrayList(T),
     allocator: std.mem.Allocator,
     accessor: Accessor,
     binary: []const u8,
-) void {
-    if (switch (accessor.component_type) {
-        .byte => T != i8,
-        .unsigned_byte => T != u8,
-        .short => T != i16,
-        .unsigned_short => T != u16,
-        .unsigned_integer => T != u32,
-        .float => T != f32,
-    }) {
+) std.mem.Allocator.Error![]T {
+    if (ComponentType.fromType(T) != accessor.component_type) {
         panic(
             "Mismatch between gltf component '{}' and given type '{}'.",
             .{ accessor.component_type, T },
@@ -212,41 +203,24 @@ pub fn getDataFromBufferView(
 
     const buffer_view = self.data.buffer_views[accessor.buffer_view.?];
 
-    const comp_size = @sizeOf(T);
-    const offset = (accessor.byte_offset + buffer_view.byte_offset) / comp_size;
+    const total_offset = accessor.byte_offset + buffer_view.byte_offset;
 
-    const stride = blk: {
-        if (buffer_view.byte_stride) |byte_stride| {
-            break :blk byte_stride / comp_size;
-        } else {
-            break :blk accessor.stride / comp_size;
-        }
-    };
+    const stride = if (buffer_view.byte_stride) |byte_stride| (byte_stride / @sizeOf(T)) else accessor.type.componentCount();
 
     const total_count = accessor.count;
-    const datum_count: usize = switch (accessor.type) {
-        // Scalar.
-        .scalar => 1,
-        // Vec2.
-        .vec2 => 2,
-        // Vec3.
-        .vec3 => 3,
-        // Vec4.
-        .vec4 => 4,
-        // Vec4.
-        .mat4x4 => 16,
-        else => {
-            panic("Accessor type '{}' not implemented.", .{accessor.type});
-        },
-    };
+    const datum_count = accessor.type.componentCount();
 
-    const data = @as([*]const T, @ptrCast(@alignCast(binary.ptr)));
+    const data = @as([]const T, @ptrCast(@alignCast(binary[total_offset..])));
+    var list = try ArrayList(T).initCapacity(allocator, total_count * datum_count);
+    defer list.deinit(allocator);
 
     var current_count: usize = 0;
     while (current_count < total_count) : (current_count += 1) {
-        const slice = (data + offset + current_count * stride)[0..datum_count];
-        list.appendSlice(allocator, slice) catch unreachable;
+        const slice = data[current_count * stride ..][0..datum_count];
+        list.appendSliceAssumeCapacity(slice);
     }
+
+    return try list.toOwnedSlice(allocator);
 }
 
 pub fn deinit(self: *Gltf) void {
@@ -723,7 +697,6 @@ fn parseGltfJson(self: *Gltf, gltf_json: []const u8) !void {
                 .component_type = undefined,
                 .type = undefined,
                 .count = undefined,
-                .stride = undefined,
             };
 
             if (object.get("componentType")) |component_type| {
@@ -733,7 +706,7 @@ fn parseGltfJson(self: *Gltf, gltf_json: []const u8) !void {
             }
 
             if (object.get("count")) |count| {
-                accessor.count = @as(i32, @intCast(count.integer));
+                accessor.count = @as(usize, @intCast(count.integer));
             } else {
                 panic("Accessor's count is missing.", .{});
             }
@@ -775,25 +748,6 @@ fn parseGltfJson(self: *Gltf, gltf_json: []const u8) !void {
             if (object.get("extras")) |extras| {
                 accessor.extras = extras.object;
             }
-
-            const component_size: usize = switch (accessor.component_type) {
-                .byte => @sizeOf(i8),
-                .unsigned_byte => @sizeOf(u8),
-                .short => @sizeOf(i16),
-                .unsigned_short => @sizeOf(u16),
-                .unsigned_integer => @sizeOf(u32),
-                .float => @sizeOf(f32),
-            };
-
-            accessor.stride = switch (accessor.type) {
-                .scalar => component_size,
-                .vec2 => 2 * component_size,
-                .vec3 => 3 * component_size,
-                .vec4 => 4 * component_size,
-                .mat2x2 => 4 * component_size,
-                .mat3x3 => 9 * component_size,
-                .mat4x4 => 16 * component_size,
-            };
 
             self.data.accessors[i] = accessor;
         }
@@ -1436,13 +1390,11 @@ test "gltf.parseGlb" {
         for (primitive.attributes) |attribute| {
             switch (attribute) {
                 .position => |accessor_index| {
-                    var tmp = ArrayList(f32).empty;
-                    defer tmp.deinit(allocator);
-
                     const accessor = gltf.data.accessors[accessor_index];
-                    gltf.getDataFromBufferView(f32, &tmp, allocator, accessor, gltf.glb_binary.?);
+                    const tmp = try gltf.getDataFromBufferView(f32, allocator, accessor, gltf.glb_binary.?);
+                    defer allocator.free(tmp);
 
-                    try expectEqualSlices(f32, tmp.items, &[72]f32{
+                    try expectEqualSlices(f32, tmp, &[72]f32{
                         // zig fmt: off
                         -0.50, -0.50, 0.50, 0.50, -0.50, 0.50, -0.50, 0.50, 0.50,
                         0.50, 0.50, 0.50, 0.50, -0.50, 0.50, -0.50, -0.50, 0.50,
@@ -1609,13 +1561,11 @@ test "gltf.getDataFromBufferView" {
         for (primitive.attributes) |attribute| {
             switch (attribute) {
                 .position => |accessor_index| {
-                    var tmp = ArrayList(f32).empty;
-                    defer tmp.deinit(allocator);
-
                     const accessor = gltf.data.accessors[accessor_index];
-                    gltf.getDataFromBufferView(f32, &tmp, allocator, accessor, binary);
+                    const tmp = try gltf.getDataFromBufferView(f32, allocator, accessor, binary);
+                    defer allocator.free(tmp);
 
-                    try expectEqualSlices(f32, tmp.items, &[72]f32{
+                    try expectEqualSlices(f32, tmp, &[72]f32{
                         // zig fmt: off
                         -0.50, -0.50, 0.50, 0.50, -0.50, 0.50, -0.50, 0.50, 0.50,
                         0.50, 0.50, 0.50, 0.50, -0.50, 0.50, -0.50, -0.50, 0.50,
