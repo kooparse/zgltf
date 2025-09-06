@@ -617,27 +617,25 @@ fn parseGltfJson(self: *Gltf, gltf_json: []const u8) !void {
                     }
 
                     if (prim_item.object.get("attributes")) |attributes| {
-                        primitive.attributes = try alloc.alloc(Attribute, attributes.object.count());
-                        var attribute_index: usize = 0;
+                        var list = try ArrayList(Attribute).initCapacity(alloc, attributes.object.count());
+                        defer list.deinit(alloc);
+
                         if (attributes.object.get("POSITION")) |position| {
-                            primitive.attributes[attribute_index] = .{
+                            list.appendAssumeCapacity(.{
                                 .position = parseIndex(position),
-                            };
-                            attribute_index += 1;
+                            });
                         }
 
                         if (attributes.object.get("NORMAL")) |normal| {
-                            primitive.attributes[attribute_index] = .{
+                            list.appendAssumeCapacity(.{
                                 .normal = parseIndex(normal),
-                            };
-                            attribute_index += 1;
+                            });
                         }
 
                         if (attributes.object.get("TANGENT")) |tangent| {
-                            primitive.attributes[attribute_index] = .{
+                            list.appendAssumeCapacity(.{
                                 .tangent = parseIndex(tangent),
-                            };
-                            attribute_index += 1;
+                            });
                         }
 
                         const texcoords = [_][]const u8{
@@ -652,10 +650,9 @@ fn parseGltfJson(self: *Gltf, gltf_json: []const u8) !void {
 
                         for (texcoords) |tex_name| {
                             if (attributes.object.get(tex_name)) |texcoord| {
-                                primitive.attributes[attribute_index] = .{
+                                list.appendAssumeCapacity(.{
                                     .texcoord = parseIndex(texcoord),
-                                };
-                                attribute_index += 1;
+                                });
                             }
                         }
 
@@ -671,10 +668,9 @@ fn parseGltfJson(self: *Gltf, gltf_json: []const u8) !void {
 
                         for (joints) |joint_name| {
                             if (attributes.object.get(joint_name)) |joint| {
-                                primitive.attributes[attribute_index] = .{
+                                list.appendAssumeCapacity(.{
                                     .joints = parseIndex(joint),
-                                };
-                                attribute_index += 1;
+                                });
                             }
                         }
 
@@ -690,12 +686,13 @@ fn parseGltfJson(self: *Gltf, gltf_json: []const u8) !void {
 
                         for (weights) |weight_count| {
                             if (attributes.object.get(weight_count)) |weight| {
-                                primitive.attributes[attribute_index] = .{
+                                list.appendAssumeCapacity(.{
                                     .weights = parseIndex(weight),
-                                };
-                                attribute_index += 1;
+                                });
                             }
                         }
+
+                        primitive.attributes = try list.toOwnedSlice(alloc);
                     }
 
                     if (prim_item.object.get("extras")) |extras| {
