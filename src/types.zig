@@ -91,10 +91,8 @@ pub const Accessor = struct {
     component_type: ComponentType,
     /// Specifies if the accessor’s elements are scalars, vectors, or matrices.
     type: AccessorType,
-    /// Computed stride: @sizeOf(component_type) * type.
-    stride: usize,
     /// The number of elements referenced by this accessor.
-    count: i32,
+    count: usize,
     /// Specifies whether integer data values are normalized before usage.
     normalized: bool = false,
     /// Any extra, custom attributes.
@@ -106,14 +104,7 @@ pub const Accessor = struct {
         gltf: *const Gltf,
         binary: []align(4) const u8,
     ) AccessorIterator(T) {
-        if (switch (accessor.component_type) {
-            .byte => T != i8,
-            .unsigned_byte => T != u8,
-            .short => T != i16,
-            .unsigned_short => T != u16,
-            .unsigned_integer => T != u32,
-            .float => T != f32,
-        }) {
+        if (ComponentType.fromType(T) != accessor.component_type) {
             panic(
                 "Mismatch between gltf component '{}' and given type '{}'.",
                 .{ accessor.component_type, T },
@@ -126,28 +117,11 @@ pub const Accessor = struct {
 
         const buffer_view = gltf.data.buffer_views[accessor.buffer_view.?];
 
-        const comp_size = @sizeOf(T);
-        const offset = (accessor.byte_offset + buffer_view.byte_offset) / comp_size;
-
-        const stride = blk: {
-            if (buffer_view.byte_stride) |byte_stride| {
-                break :blk byte_stride / comp_size;
-            } else {
-                break :blk accessor.stride / comp_size;
-            }
-        };
+        const offset = (accessor.byte_offset + buffer_view.byte_offset) / @sizeOf(T);
+        const stride = if (buffer_view.byte_stride) |byte_stride| (byte_stride / @sizeOf(T)) else 1;
 
         const total_count: usize = @intCast(accessor.count);
-        const datum_count: usize = switch (accessor.type) {
-            .scalar => 1,
-            .vec2 => 2,
-            .vec3 => 3,
-            .vec4 => 4,
-            .mat4x4 => 16,
-            else => {
-                panic("Accessor type '{}' not implemented.", .{accessor.type});
-            },
-        };
+        const datum_count: usize = accessor.type.componentCount();
 
         const data: [*]const T = @ptrCast(@alignCast(binary.ptr));
 
@@ -434,6 +408,18 @@ pub const AccessorType = enum {
     mat2x2,
     mat3x3,
     mat4x4,
+
+    pub fn componentCount(self: AccessorType) usize {
+        return switch (self) {
+            .scalar => 1,
+            .vec2 => 2,
+            .vec3 => 3,
+            .vec4 => 4,
+            .mat2x2 => 4,
+            .mat3x3 => 9,
+            .mat4x4 => 16,
+        };
+    }
 };
 
 /// Enum values from GLTF 2.0 spec.
@@ -444,18 +430,35 @@ pub const Target = enum(u32) {
 
 /// Enum values from GLTF 2.0 spec.
 pub const ComponentType = enum(u32) {
-    /// i8.
     byte = 5120,
-    /// u8.
     unsigned_byte = 5121,
-    /// i16.
     short = 5122,
-    /// u16.
     unsigned_short = 5123,
-    /// u32.
     unsigned_integer = 5125,
-    /// f32.
     float = 5126,
+
+    pub fn fromType(T: type) ComponentType {
+        return switch (T) {
+            i8 => .byte,
+            u8 => .unsigned_byte,
+            i16 => .short,
+            u16 => .unsigned_short,
+            u32 => .unsigned_integer,
+            f32 => .float,
+            else => @compileError("invalid type " ++ @typeName(T) ++ " for ComponentType.fromType"),
+        };
+    }
+
+    pub fn byteSize(self: ComponentType) usize {
+        return switch (self) {
+            .byte => @sizeOf(i8),
+            .unsigned_byte => @sizeOf(u8),
+            .short => @sizeOf(i16),
+            .unsigned_short => @sizeOf(u16),
+            .unsigned_integer => @sizeOf(u32),
+            .float => @sizeOf(f32),
+        };
+    }
 };
 
 /// The topology type of primitives to render.
