@@ -118,10 +118,11 @@ pub const Accessor = struct {
         const buffer_view = gltf.data.buffer_views[accessor.buffer_view.?];
 
         const offset = (accessor.byte_offset + buffer_view.byte_offset) / @sizeOf(T);
-        const stride = if (buffer_view.byte_stride) |byte_stride| (byte_stride / @sizeOf(T)) else 1;
+        const datum_count: usize = accessor.type.componentCount();
+        // When byte_stride is null, data is tightly packed, so stride = datum_count
+        const stride = if (buffer_view.byte_stride) |byte_stride| (byte_stride / @sizeOf(T)) else datum_count;
 
         const total_count: usize = @intCast(accessor.count);
-        const datum_count: usize = accessor.type.componentCount();
 
         const data: [*]const T = @ptrCast(@alignCast(binary.ptr));
 
