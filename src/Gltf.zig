@@ -157,8 +157,8 @@ pub fn debugPrint(self: *const Gltf) void {
         print("   Skins found:\n", .{});
 
         for (self.data.skins) |skin| {
-            print("     '{s}' found with {} joint(s).\n", .{
-                skin.name.?,
+            print("     '{?s}' found with {} joint(s).\n", .{
+                skin.name,
                 skin.joints.len,
             });
         }
@@ -171,8 +171,8 @@ pub fn debugPrint(self: *const Gltf) void {
 
         for (self.data.animations) |anim| {
             print(
-                "     '{s}' found with {} sampler(s) and {} channel(s).\n",
-                .{ anim.name.?, anim.samplers.len, anim.channels.len },
+                "     '{?s}' found with {} sampler(s) and {} channel(s).\n",
+                .{ anim.name, anim.samplers.len, anim.channels.len },
             );
         }
 
