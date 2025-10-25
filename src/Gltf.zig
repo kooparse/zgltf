@@ -45,6 +45,7 @@ pub const ComponentType = types.ComponentType;
 pub const Target = types.Target;
 pub const MetallicRoughness = types.MetallicRoughness;
 pub const AnimationSampler = types.AnimationSampler;
+pub const Interpolation = types.Interpolation;
 pub const Channel = types.Channel;
 pub const MagFilter = types.MagFilter;
 pub const MinFilter = types.MinFilter;
