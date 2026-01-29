@@ -36,7 +36,7 @@ pub fn main() void {
 
     try gltf.parse(buf);
 
-    for (gltf.nodes.items) |node| {
+    for (gltf.data.nodes) |node| {
         const message =
             \\\ Node's name: {s}
             \\\ Children count: {}
@@ -45,7 +45,7 @@ pub fn main() void {
 
         print(message, .{
             node.name orelse "Unnamed Node",
-            node.children.items.len,
+            node.children.len,
             node.skin != null,
         });
     }
