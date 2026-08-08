@@ -331,6 +331,10 @@ pub const Texture = struct {
             /// The index of the WebP image used by this texture.
             source: Index,
         } = null,
+        KHR_texture_basisu: ?struct {
+            /// The index of the WebP image used by this texture.
+            source: Index,
+        } = null,
     } = .{},
     /// Any extra, custom attributes.
     extras: ?json.ObjectMap = null,
