@@ -1078,6 +1078,11 @@ fn parseGltfJson(self: *Gltf, gltf_json: []const u8) !void {
                         texture.extensions.EXT_texture_webp = .{ .source = parseIndex(source) };
                     }
                 }
+                if (extension.object.get("KHR_texture_basisu")) |basisu| {
+                    if (basisu.object.get("source")) |source| {
+                        texture.extensions.KHR_texture_basisu = .{ .source = parseIndex(source) };
+                    }
+                }
             }
 
             if (item.object.get("extras")) |extras| {
