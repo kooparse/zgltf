@@ -1369,11 +1369,19 @@ fn fillParents(data: *Data, node: *Node, parent_index: Index) void {
 }
 
 test "gltf.parseGlb" {
+    const io = std.testing.io;
     const allocator = std.testing.allocator;
     const expectEqualSlices = std.testing.expectEqualSlices;
 
     // This is the '.glb' file.
-    const glb_buf = try std.fs.cwd().readFileAllocOptions(allocator, "test-samples/box_binary/Box.glb", 512_000, null, .@"4", null);
+    const glb_buf = try std.Io.Dir.cwd().readFileAllocOptions(
+        io,
+        "test-samples/box_binary/Box.glb",
+        allocator,
+        std.Io.Limit.limited(512_000),
+        .@"4",
+        null
+    );
     defer allocator.free(glb_buf);
 
     var gltf = Gltf.init(allocator);
@@ -1411,15 +1419,16 @@ test "gltf.parseGlb" {
 }
 
 test "gltf.parseGlbTextured" {
+    const io = std.testing.io;
     const allocator = std.testing.allocator;
     const expectEqualSlices = std.testing.expectEqualSlices;
 
     // This is the '.glb' file.
-    const glb_buf = try std.fs.cwd().readFileAllocOptions(
-        allocator,
+    const glb_buf = try std.Io.Dir.cwd().readFileAllocOptions(
+        io,
         "test-samples/box_binary_textured/BoxTextured.glb",
-        512_000,
-        null,
+        allocator,
+        std.Io.Limit.limited(512_000),
         .@"4",
         null
     );
@@ -1430,10 +1439,11 @@ test "gltf.parseGlbTextured" {
 
     try gltf.parseGlb(glb_buf);
 
-    const test_to_check = try std.fs.cwd().readFileAlloc(
-        allocator,
+    const test_to_check = try std.Io.Dir.cwd().readFileAlloc(
+        io,
         "test-samples/box_binary_textured/test.png",
-        512_000
+        allocator,
+        std.Io.Limit.limited(512_000)
     );
     defer allocator.free(test_to_check);
 
@@ -1442,17 +1452,18 @@ test "gltf.parseGlbTextured" {
 }
 
 test "gltf.parse" {
+    const io = std.testing.io;
     const allocator = std.testing.allocator;
     const expectEqualSlices = std.testing.expectEqualSlices;
     const expectEqual = std.testing.expectEqual;
 
     // This is the '.gltf' file, a json specifying what information is in the
     // model and how to retrieve it inside binary file(s).
-    const buf = try std.fs.cwd().readFileAllocOptions(
-        allocator,
+    const buf = try std.Io.Dir.cwd().readFileAllocOptions(
+        io,
         "test-samples/rigged_simple/RiggedSimple.gltf",
-        512_000,
-        null,
+        allocator,
+        std.Io.Limit.limited(512_000),
         .@"4",
         null
     );
@@ -1485,14 +1496,15 @@ test "gltf.parse" {
 }
 
 test "gltf.parse (cameras)" {
+    const io = std.testing.io;
     const allocator = std.testing.allocator;
     const expectEqual = std.testing.expectEqual;
 
-    const buf = try std.fs.cwd().readFileAllocOptions(
-        allocator,
+    const buf = try std.Io.Dir.cwd().readFileAllocOptions(
+        io,
         "test-samples/cameras/Cameras.gltf",
-        512_000,
-        null,
+        allocator,
+        std.Io.Limit.limited(512_000),
         .@"4",
         null
     );
@@ -1524,25 +1536,26 @@ test "gltf.parse (cameras)" {
 }
 
 test "gltf.getDataFromBufferView" {
+    const io = std.testing.io;
     const allocator = std.testing.allocator;
     const expectEqualSlices = std.testing.expectEqualSlices;
 
-    const buf = try std.fs.cwd().readFileAllocOptions(
-        allocator,
+    const buf = try std.Io.Dir.cwd().readFileAllocOptions(
+        io,
         "test-samples/box/Box.gltf",
-        512_000,
-        null,
+        allocator,
+        std.Io.Limit.limited(512_000),
         .@"4",
         null
     );
     defer allocator.free(buf);
 
     // This is the '.bin' file containing all the gltf underneath data.
-    const binary = try std.fs.cwd().readFileAllocOptions(
-        allocator,
+    const binary = try std.Io.Dir.cwd().readFileAllocOptions(
+        io,
         "test-samples/box/Box0.bin",
-        5_000_000,
-        null,
+        allocator,
+        std.Io.Limit.limited(5_000_000),
         // From gltf spec, data from BufferView should be 4 bytes aligned.
         .@"4",
         null,
@@ -1582,15 +1595,16 @@ test "gltf.getDataFromBufferView" {
 }
 
 test "gltf.parse (lights)" {
+    const io = std.testing.io;
     const allocator = std.testing.allocator;
     const expect = std.testing.expect;
     const expectEqual = std.testing.expectEqual;
 
-    const buf = try std.fs.cwd().readFileAllocOptions(
-        allocator,
+    const buf = try std.Io.Dir.cwd().readFileAllocOptions(
+        io,
         "test-samples/khr_lights_punctual/Lights.gltf",
-        512_000,
-        null,
+        allocator,
+        std.Io.Limit.limited(512_000),
         .@"4",
         null
     );
