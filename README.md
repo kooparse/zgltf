@@ -124,7 +124,7 @@ for (primitive.attributes.items) |attribute| {
 
 ## Install
 
-Note: **Zig 0.15.1 is required.**
+Note: **Zig 0.17.1 is required.**
 
 ```sh
 zig fetch --save git+https://github.com/kooparse/zgltf
